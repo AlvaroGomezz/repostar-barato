@@ -101,7 +101,7 @@ def escribir(snap: dict, historico: dict, ruta_fn) -> Articulo:
     elif partes:
         gancho = " y ".join(partes)
     else:
-        gancho = f"diésel a {precio(d_hoy)} y gasolina a {precio(g_hoy)}"
+        gancho = "así está el precio en tu provincia"
     titulo = f"Precio de la gasolina y el diésel hoy, {_dia_mes(fecha)}: {gancho}"
 
     n_est = max(v["n"] for v in nac.values())
@@ -119,8 +119,13 @@ def escribir(snap: dict, historico: dict, ruta_fn) -> Articulo:
         dm=Markup(", ") + d_mov if d_mov else "", g=_b(precio(g_hoy) + "/l"),
         gm=Markup(", ") + g_mov if g_mov else "", n=numero(n_est, 0), h=hora(actualizado),
     )
-    descripcion = (f"Precio medio hoy {fecha.day} de {MESES[fecha.month - 1]}: diésel {precio(d_hoy)}/l "
-                   f"y gasolina 95 {precio(g_hoy)}/l. Provincias y gasolineras más baratas de España.")
+    descripcion = rng.choice([
+        "Así cambia hoy el precio del diésel y la gasolina en España: las provincias y las gasolineras más baratas, "
+        "y cuánto cuesta llenar el depósito.",
+        "Consulta el precio de los carburantes hoy en tu provincia y en las grandes ciudades, y dónde está la "
+        "gasolinera más barata de España.",
+        "Las tarifas más altas y más bajas de hoy, provincia a provincia, y las gasolineras donde repostar más barato.",
+    ])
 
     secciones: list[Seccion] = []
 
@@ -321,8 +326,8 @@ def repostar_hoy(snap: dict, historico: dict, ruta_fn) -> "Articulo | None":
     ])
     titular = f"¿Repostar hoy o esperar? {dm[:1].upper() + dm[1:]}"
     gancho = t_d["titulo"]
-    descripcion = (f"{t_d['texto'].split('.')[0]}. Te contamos si conviene llenar el depósito hoy o esperar, "
-                   f"dónde sube y dónde baja, y cómo ahorrar más.")
+    descripcion = ("¿Conviene llenar el depósito hoy o esperar unos días? Te contamos hacia dónde va el precio del "
+                   "diésel y la gasolina, dónde sube y dónde baja, y cómo ahorrar más.")
     entradilla = Markup("{t}. {d} En cuanto a la gasolina 95: {g}.").format(
         t=_b(t_d["titulo"]), d=t_d["texto"], g=t_g["texto"].split(".")[0].split(": ", 1)[-1])
     secciones = []
@@ -401,9 +406,9 @@ def ciudad(snap: dict, historico: dict, ruta_fn, c: dict, orden: int) -> "Articu
     rng = random.Random(fecha.toordinal() * 31 + orden)
     dm, nombre = _dia_mes(fecha), c["nombre"]
     titulo = rng.choice([
-        f"Gasolineras más baratas en {nombre} hoy, {dm}: diésel desde {precio(d['min'])} y gasolina 95 desde {precio(g['min'])}",
+        f"Gasolineras más baratas en {nombre} hoy, {dm}: dónde repostar más barato",
         f"Dónde echar gasolina más barata en {nombre} hoy, {dm}: las cinco mejores de cada combustible",
-        f"Precio de la gasolina en {nombre} hoy, {dm}: la más barata, a {precio(g['min'])}",
+        f"Precio de la gasolina en {nombre} hoy, {dm}: estas son las gasolineras más baratas",
     ])
     titular = f"Gasolina más barata en {nombre} hoy"
     slug = "gasolineras-mas-baratas-" + c["ruta"].strip("/").split("/")[-1] + "-hoy"
@@ -419,8 +424,8 @@ def ciudad(snap: dict, historico: dict, ruta_fn, c: dict, orden: int) -> "Articu
         "diésel, según los precios oficiales de sus {n} gasolineras a las {h}.{mov}"
     ).format(ciudad=_enlace(ruta_fn, c["ruta"], nombre), gmin=_b(precio(g["min"])), gmax=precio(g["max"]),
              dmin=_b(precio(d["min"])), dmax=precio(d["max"]), n=c["n"], h=hora(actualizado), mov=mov)
-    descripcion = (f"Las cinco gasolineras más baratas de {nombre} hoy para diésel ({precio(d['min'])}) y gasolina 95 "
-                   f"({precio(g['min'])}), con su dirección, y cuánto ahorras frente a la más cara.")
+    descripcion = (f"Las cinco gasolineras más baratas de {nombre} hoy para diésel y gasolina 95, con su dirección, "
+                   f"y cuánto te ahorras frente a la más cara de la ciudad.")
     secciones = []
     for clave, datos, frase in (("diesel", d, "el diésel más barato"), ("g95", g, "la gasolina 95 más barata")):
         s = Seccion(f"Las 5 gasolineras con {frase} de {nombre}")
@@ -443,7 +448,7 @@ def ciudad(snap: dict, historico: dict, ruta_fn, c: dict, orden: int) -> "Articu
         _enlace(ruta_fn, c["ruta"], f"las {c['n']} gasolineras de {nombre}")))
     secciones.append(s)
     return Articulo(fecha, titulo, descripcion, entradilla, secciones, actualizado, titular=titular,
-                    gancho=f"Diésel desde {precio(d['min'])} en {nombre}",
+                    gancho=f"Las más baratas de {nombre}",
                     medias={k: v["media"] for k, v in nac.items() if k in ("diesel", "g95", "g98", "glp")},
                     n_estaciones=c["n"], slug=slug, tema=f"Precio de la gasolina en {nombre}", orden=orden,
                     imagen_filas=[{"nombre": "Diésel", "valor": d["min"], "nota": "la más barata"},
@@ -460,8 +465,10 @@ def semanal(snap: dict, historico: dict, ruta_fn) -> "Articulo | None":
     nac, nac0 = snap["nac"], antes["nac"]
     dd = nac["diesel"]["media"] - nac0["diesel"]["media"]
     dg = nac["g95"]["media"] - nac0["g95"]["media"]
-    titulo = (f"Resumen de la semana: el diésel {_var_txt(dd)} y la gasolina 95 {_var_txt(dg)} en siete días"
-              .replace("sin cambios", "se mantiene"))
+    def sentido(d, nombre):
+        return f"{nombre} {'sube' if d > UMBRAL else 'baja' if d < -UMBRAL else 'se mantiene'}"
+    titulo = (f"Resumen de la semana: {sentido(dd, 'el diésel')} y {sentido(dg, 'la gasolina')}. "
+              f"Así ha cambiado el precio en siete días")
     secciones = []
     s = Seccion("Precio medio, hoy y hace una semana")
     s.tabla = {"cabecera": ["Combustible", "Hace una semana", "Hoy", "Cambio"],
@@ -506,7 +513,7 @@ def semanal(snap: dict, historico: dict, ruta_fn) -> "Articulo | None":
         d=_var_txt(dd), dh=_b(precio(nac["diesel"]["media"])), g=_var_txt(dg), gh=_b(precio(nac["g95"]["media"])))
     return Articulo(fecha, titulo, f"Cómo ha cambiado el precio de la gasolina y el diésel en la última semana, "
                     f"por provincias, ciudades y marcas.", entradilla, secciones, actualizado,
-                    titular="Resumen de la semana", gancho=f"Diésel {_cts(dd)} en la semana",
+                    titular="Resumen de la semana", gancho="Así ha cambiado el precio en la semana",
                     medias={k: v["media"] for k, v in nac.items() if k in ("diesel", "g95", "g98", "glp")},
                     n_estaciones=max(v["n"] for v in nac.values()), slug="resumen-semanal-precio-gasolina",
                     tema="Resumen semanal", orden=5,
@@ -529,7 +536,7 @@ def record(snap: dict, historico: dict, ruta_fn) -> "Articulo | None":
         dias = (fecha - serie[0][0]).days
         extremo = "más alto" if alto else "más bajo"
         prev = max(resto) if alto else min(resto)
-        titulo = f"{art} {nombre} marca su precio {extremo} de los últimos {dias} días: {precio(hoy_v)} el litro"
+        titulo = f"{art} {nombre} marca su precio {extremo} de los últimos {dias} días"
         actualizado = datetime.fromisoformat(snap["actualizado"])
         s = Seccion("Los últimos días")
         s.tabla = {"cabecera": ["Día", POR_CLAVE[clave].nombre],

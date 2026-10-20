@@ -9,7 +9,7 @@ from xml.sax.saxutils import escape as xml_escape
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markupsafe import Markup
 
-from . import articulos, graficos, imagenes, tendencia
+from . import articulos, graficos, imagenes, marca, tendencia
 from .config import COMBUSTIBLES, FISCALIDAD_ESPECIAL, POR_CLAVE, RAIZ, Sitio, con_articulo
 from .datos import Datos, Estacion, Municipio, Provincia, mas_baratas, resumen
 from .texto import (capitalizar, centimos, fecha_corta, fecha_larga, fecha_media, hora, numero,
@@ -56,6 +56,7 @@ class Web:
             sitio=sitio, url=self.url, abs_url=self.abs_url, C=POR_CLAVE, combustibles=COMBUSTIBLES,
             UI=UI, actualizado=datos.actualizado, anio=self.hoy.year, ld_migas=self.ld_migas,
             ld_faq=self.ld_faq, deposito=DEPOSITO_L, n_total=len(datos.estaciones),
+            marca_gota=marca.gota_d(), marca_flecha=marca.FLECHA_D,
         )
         self.nac = {c.clave: resumen(datos.estaciones, c.clave) for c in COMBUSTIBLES}
         self.ayer = historico.get(self.hoy - timedelta(days=1))
@@ -204,14 +205,25 @@ class Web:
             return fila(nombre, valor, cts(var), 1 if var > 0 else -1)
 
         # Una foto real de surtidores o gasolineras, distinta cada día, con el titular y los precios encima.
+        usadas_por_dia: dict = {}
         for a in noticias:
+            usadas = usadas_por_dia.setdefault(a.fecha, set())
+            clave = a.fecha.toordinal() + a.orden * 3
+            if a.slug != "precio-gasolina-diesel-hoy":
+                # Las demás noticias llevan solo la foto, sin texto encima.
+                grupo = ("deposito" if a.slug.startswith("merece") else
+                         "gasolinera" if a.slug.startswith("gasolineras-mas-baratas") else "todas")
+                foto = imagenes.elegir(grupo, clave, usadas)
+                a.foto = self.creditos_fotos.get(foto)
+                imagenes.solo_foto(self.salida / a.imagen.lstrip("/"), foto)
+                continue
             if a.imagen_filas:
                 filas = [fila(x["nombre"], x["valor"], x["nota"]) if x.get("nota") else
                          fila_var(None, x["nombre"], x["valor"], x.get("var")) for x in a.imagen_filas]
             else:
                 filas = [fila_var(c, POR_CLAVE[c].nombre, a.medias[c], a.cambios.get(c))
                          for c in ("diesel", "g95") if a.medias.get(c)]
-            foto = imagenes.foto_para(a.fecha.toordinal() + a.orden)
+            foto = imagenes.elegir("todas", clave, usadas)
             a.foto = self.creditos_fotos.get(foto)
             imagenes.portada_con_foto(self.salida / a.imagen.lstrip("/"), a.tema,
                                       a.titular, filas, foto, etiqueta=etiqueta(a.fecha))
@@ -496,3 +508,13 @@ class Web:
             pub = self.sitio.adsense.replace("ca-", "")
             self.fichero("ads.txt", f"google.com, {pub}, DIRECT, f08c47fec0942fa0\n")
         self.fichero(".nojekyll", "")
+        # La web se puede añadir a la pantalla de inicio del móvil como una app.
+        icono = lambda n, t, extra=None: dict({"src": self.url(f"/estatico/marca/{n}"), "sizes": t, "type": "image/png"}, **(extra or {}))  # noqa: E731
+        self.fichero("manifest.webmanifest", json.dumps({
+            "name": self.sitio.nombre, "short_name": self.sitio.nombre, "lang": "es",
+            "description": "Las gasolineras más baratas cerca de ti, con los precios oficiales de hoy.",
+            "start_url": self.url("/"), "scope": self.url("/"), "display": "standalone",
+            "background_color": "#f3f2ef", "theme_color": "#ffd43b",
+            "icons": [icono("icono-192.png", "192x192"), icono("icono-512.png", "512x512"),
+                      icono("icono-maskable-512.png", "512x512", {"purpose": "maskable"})],
+        }, ensure_ascii=False, indent=1))

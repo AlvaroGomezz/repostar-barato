@@ -35,6 +35,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="icon" href="{{ url('/estatico/icono.svg') }}" type="image/svg+xml">
+<link rel="icon" href="{{ url('/estatico/marca/favicon-48.png') }}" type="image/png" sizes="48x48">
+<link rel="apple-touch-icon" href="{{ url('/estatico/marca/apple-touch-icon.png') }}">
+<link rel="manifest" href="{{ url('/manifest.webmanifest') }}">
+<meta name="apple-mobile-web-app-title" content="{{ sitio.nombre }}">
 <link rel="stylesheet" href="{{ url('/estatico/estilo.css') }}?v={{ actualizado.strftime('%Y%m%d%H%M') }}">
 {% if sitio.adsense %}
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ sitio.adsense }}" crossorigin="anonymous"></script>

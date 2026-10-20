@@ -58,6 +58,13 @@ def _titulo_que_cabe(d, texto: str, ancho: int, alto: int, tam_max: int = 78, ta
     return f, _lineas(d, texto, f, ancho)[:4], tam_min
 
 
+def _logo(img: Image.Image, x: int, y: int, h: int = 40):
+    """La gota del logo, pegada en la imagen."""
+    from .marca import _dibujar
+    gota = _dibujar(h, None, 0, 1.18)
+    img.paste(gota, (x, y), gota)
+
+
 def _simbolo(d: ImageDraw.ImageDraw, x: int, y: int, h: int = 40):
     """El poste de precios del logo."""
     w = round(h * 14 / 21)
@@ -84,7 +91,7 @@ def tarjeta(destino: Path, antetitulo: str, titulo: str, filas: list[dict], pie:
     margen = 64
 
     # Cabecera: logo y, a la derecha, la etiqueta (normalmente la fecha).
-    _simbolo(d, margen, 52, 40)
+    _logo(img, margen - 10, 46, 52)
     d.text((margen + 40, 50), "Repostar Barato", font=fuente(32, 700), fill=TINTA)
     if etiqueta:
         f = fuente(24, 600)
@@ -152,7 +159,49 @@ ENCUADRE = {
     "red-gas-pump-handle-in-car-gas.jpg": 0.4,
     "gasolinera-en-ceutaa-1.jpg": 0.55,
     "olaberria-gasolinera-avia-1.jpg": 0.45,
+    "gasolinera-y-estacion-de-servicio-repsol-torreblanca.jpg": 0.6,
+    "gasolinera-repsol.jpg": 0.4,
+    "gasolinera-cepsa1.jpg": 0.5,
+    "gasolinera-cepsa.jpg": 0.45,
+    "gasolinera-de-plaza-colon-cordoba.jpg": 0.5,
+    "gasolinera-galp-01.jpg": 0.4,
+    "miranda-de-ebro-calle-logrono-estacion-de.jpg": 0.5,
+    "car-fuel-gauge-full-gas-tank-52958977635.jpg": 0.5,
+    "fuel-gauge-running-on-empty.jpg": 0.55,
+    "gasolinera-alaska-malaga-20240719-191625.jpg": 0.4,
 }
+# Grupos de fotos según el tema de la noticia.
+GRUPOS = {
+    "surtidor": ["gas-pump-in-lannion.jpg", "petrol-pump-mp3h0354.jpg", "gas-pump-handle-fueling-station-34825559585.jpg",
+                 "red-gas-pump-handle-in-car-gas.jpg"],
+    "gasolinera": ["gasolinera-en-ceutaa-1.jpg", "olaberria-gasolinera-avia-1.jpg",
+                   "gasolinera-y-estacion-de-servicio-repsol-torreblanca.jpg", "gasolinera-repsol.jpg",
+                   "gasolinera-cepsa1.jpg", "gasolinera-cepsa.jpg", "gasolinera-de-plaza-colon-cordoba.jpg",
+                   "gasolinera-galp-01.jpg", "miranda-de-ebro-calle-logrono-estacion-de.jpg",
+                   "gasolinera-alaska-malaga-20240719-191625.jpg"],
+    "deposito": ["fuel-gauge-running-on-empty.jpg", "car-fuel-gauge-full-gas-tank-52958977635.jpg",
+                 "red-gas-pump-handle-in-car-gas.jpg", "petrol-pump-mp3h0354.jpg"],
+}
+GRUPOS["todas"] = GRUPOS["surtidor"] + GRUPOS["gasolinera"]
+
+
+def elegir(grupo: str, clave: int, usadas: set) -> str:
+    """Una foto del grupo según la clave, sin repetir las ya usadas (p. ej. en el mismo día)."""
+    lista = GRUPOS[grupo]
+    for i in range(len(lista)):
+        f = lista[(clave + i) % len(lista)]
+        if f not in usadas:
+            usadas.add(f)
+            return f
+    return lista[clave % len(lista)]
+
+
+def solo_foto(destino: Path, foto: str) -> None:
+    """La foto sola, recortada a 16:9, como la de un periódico."""
+    original = Image.open(FOTOS / foto).convert("RGB")
+    img = _recorte(original, ANCHO, ALTO, ENCUADRE.get(foto, .5))
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    img.save(destino, "JPEG", quality=84, optimize=True, progressive=True)
 
 
 def fotos() -> list[str]:
@@ -190,7 +239,7 @@ def portada_con_foto(destino: Path, antetitulo: str, titulo: str, filas: list[di
 
     d = ImageDraw.Draw(img)
     margen = 56
-    _simbolo(d, margen, 48, 38)
+    _logo(img, margen - 10, 40, 52)
     d.text((margen + 38, 46), "Repostar Barato", font=fuente(30, 700), fill=TINTA)
     if etiqueta:
         f = fuente(24, 700)

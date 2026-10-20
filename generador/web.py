@@ -208,6 +208,15 @@ class Web:
         }
 
         top = {c: mas_baratas(peninsula, c, 8) for c in UI}
+        # Accesos directos: las ciudades con más gasolineras (un municipio por provincia).
+        ciudades, vistas = [], set()
+        for m in sorted(self.d.municipios, key=lambda m: -len(m.estaciones)):
+            if m.provincia.id in vistas:
+                continue
+            vistas.add(m.provincia.id)
+            ciudades.append(m)
+            if len(ciudades) == 8:
+                break
 
         grupos: dict[str, list] = {}
         for p in self.d.provincias:
@@ -221,7 +230,7 @@ class Web:
 
         self.escribir(
             "/", "inicio.html", prioridad="1.0", poste=poste, cifras=cifras, hallazgo=hallazgo, pieza=pieza,
-            top=top, grupos=grupos_ordenados, baratas=baratas, noticias=noticias[:4],
+            top=top, ciudades=ciudades, grupos=grupos_ordenados, baratas=baratas, noticias=noticias[:4],
             n_estaciones=len(self.d.estaciones), n_municipios=len(self.d.municipios),
         )
 

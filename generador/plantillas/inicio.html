@@ -11,52 +11,89 @@
 {% block contenido %}
 {% set p = poste %}
 
-{# ---------- 1. El poste de precios: el buscador ---------- #}
+{# ---------- 1. El buscador: a la izquierda, qué hacer; a la derecha, el resultado ---------- #}
 <section class="heroe" id="poste" aria-labelledby="heroe-t">
-  <div class="heroe-izq">
-    <a class="heroe-logo" href="{{ url('/') }}" translate="no">{{ mc.simbolo() }}<span>{{ sitio.nombre }}</span></a>
-    <div class="heroe-texto">
-      <h1 id="heroe-t" class="lineas"><span class="linea"><span data-linea style="--i:0">Encuentra la gasolinera</span></span> <span class="linea"><span data-linea style="--i:1">más barata</span></span></h1>
-      <p class="heroe-frase">Los precios oficiales de las {{ n_estaciones|numero(0) }} gasolineras de España. Escribe tu pueblo en el poste o deja que busquemos la más barata a tu alrededor.</p>
-      <button class="boton-claro" type="button" data-poste-ubicacion>
-        <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M10 18s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10Z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="10" cy="8" r="2.2" fill="currentColor"/></svg>
-        Usar mi ubicación
-      </button>
-    </div>
-  </div>
-  <div class="heroe-der">
-    <nav class="heroe-nav" aria-label="Principal">
-      <a href="#provincias">Provincias</a>
-      <a href="{{ url('/marcas/') }}">Marcas</a>
-      <a href="{{ url('/noticias/') }}">Noticias</a>
-    </nav>
-    <div class="poste" data-ui data-poste>
-      <div class="poste-cabeza">
-        <p class="poste-contexto" data-poste-contexto>La más barata de la Península, ahora</p>
-        <p class="poste-rotulo" data-poste-rotulo translate="no">{{ p.rotulo }}</p>
-        <p class="poste-lugar" data-poste-lugar>{{ p.direccion }} · <a href="{{ url(p.municipio.ruta) }}">{{ p.municipio.nombre }}</a>, {{ p.municipio.provincia.nombre }}</p>
+  <div class="heroe-marco">
+    <header class="heroe-barra">
+      <a class="heroe-logo" href="{{ url('/') }}" translate="no">{{ mc.simbolo() }}<span>{{ sitio.nombre }}</span></a>
+      <nav class="heroe-nav" aria-label="Principal">
+        <a href="#provincias">Provincias</a>
+        <a href="{{ url('/marcas/') }}">Marcas</a>
+        <a href="{{ url('/noticias/') }}">Noticias</a>
+      </nav>
+    </header>
+    <div class="heroe-cuerpo">
+      <div class="heroe-izq">
+        <h1 id="heroe-t" class="lineas"><span class="linea"><span data-linea style="--i:0">Encuentra la gasolinera</span></span> <span class="linea"><span data-linea style="--i:1">más barata</span></span></h1>
+        <p class="heroe-frase">Precios oficiales de las {{ n_estaciones|numero(0) }} gasolineras de España, actualizados hoy a las {{ actualizado|hora }}.</p>
+        <form class="heroe-buscar buscador" role="search" onsubmit="return false">
+          <label class="oculto" for="q">Busca tu municipio</label>
+          <svg class="buscador-icono" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <input id="q" name="q" type="search" placeholder="Escribe tu pueblo o ciudad…" autocomplete="off" spellcheck="false" data-buscador data-poste-buscar role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug-poste">
+          <ul class="sugerencias" id="sug-poste" role="listbox" aria-label="Municipios" data-sugerencias hidden></ul>
+        </form>
+        <div class="heroe-acciones">
+          <button class="boton" type="button" data-poste-ubicacion>
+            <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M10 18s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10Z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="10" cy="8" r="2.2" fill="currentColor"/></svg>
+            Usar mi ubicación
+          </button>
+          <span class="heroe-o">la más barata a menos de 10 km</span>
+        </div>
+        <div class="heroe-ciudades">
+          <p>O mira una ciudad:</p>
+          <ul>{% for m in ciudades %}<li><a href="{{ url(m.ruta) }}" data-poste-ciudad data-nombre="{{ m.nombre }}">{{ m.nombre }}</a></li>{% endfor %}</ul>
+        </div>
+        <ul class="heroe-hechos">
+          <li><b>Tu combustible</b> Diésel, 95, 98 o GLP: lo eliges en el poste y la web lo recuerda.</li>
+          <li><b>Cómo llegar</b> Cada gasolinera abre la ruta en tu mapa con un toque.</li>
+          <li><b>Cuánto ahorras</b> En cada pueblo, la diferencia en euros por depósito.</li>
+        </ul>
       </div>
-      <ul class="poste-filas" aria-label="Precios por litro">
-        {% for c in UI %}
-        <li><a href="?c={{ c }}" data-elegir="{{ c }}" class="poste-fila">
-          <span class="poste-comb">{{ C[c].nombre }}</span>
-          <span class="poste-cifra" data-poste-precio="{{ c }}">{% if p.precios.get(c) %}{{ "%.3f"|format(p.precios[c])|replace(".", ",") }}{% else %}—{% endif %}</span>
-        </a></li>
-        {% endfor %}
-      </ul>
-      <form class="poste-buscar buscador" role="search" onsubmit="return false">
-        <label class="oculto" for="q">Busca tu municipio</label>
-        <svg class="buscador-icono" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        <input id="q" name="q" type="search" placeholder="¿Dónde vas a repostar?" autocomplete="off" spellcheck="false" data-buscador data-poste-buscar role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug-poste">
-        <ul class="sugerencias" id="sug-poste" role="listbox" aria-label="Municipios" data-sugerencias hidden></ul>
-      </form>
-      <p class="poste-pie" aria-live="polite">
-        <span data-poste-nota>€ por litro · precios de las {{ actualizado|hora }}</span>
-        <span class="poste-enlaces">
-          <a data-poste-ver href="{{ url(p.municipio.ruta) }}">Ver todas</a>
-          {% if p.mapa %}<a data-poste-ir href="{{ p.mapa }}" target="_blank" rel="nofollow noopener">Cómo llegar</a>{% endif %}
-        </span>
-      </p>
+
+      <div class="heroe-der">
+        <div class="poste" data-ui data-poste>
+          {# Estado inicial: la más barata de la Península para cada combustible, sin esperar a nada. #}
+          <div data-poste-estatico>
+            {% for c in UI %}{% set lista = top[c] %}{% set p = lista[0] if lista else none %}
+            <div data-c="{{ c }}">
+              {% if p %}
+              <div class="poste-cabeza">
+                <p class="poste-contexto">La más barata de la Península ahora · {{ C[c].nombre }}</p>
+                <p class="poste-rotulo" translate="no">{{ p.rotulo }}</p>
+                <p class="poste-lugar">{{ p.direccion }} · <a href="{{ url(p.municipio.ruta) }}">{{ p.municipio.nombre }}</a>, {{ p.municipio.provincia.nombre }}</p>
+              </div>
+              <ul class="poste-filas" aria-label="Precios por litro en {{ p.rotulo }}">
+                {% for k in UI %}
+                <li><a href="?c={{ k }}" data-elegir="{{ k }}" class="poste-fila">
+                  <span class="poste-comb">{{ C[k].nombre }}</span>
+                  <span class="poste-cifra" data-cifra>{% if p.precios.get(k) %}{{ "%.3f"|format(p.precios[k])|replace(".", ",") }}{% else %}—{% endif %}</span>
+                </a></li>
+                {% endfor %}
+              </ul>
+              <div class="poste-alt">
+                <p class="poste-alt-titulo">Siguientes en la Península · {{ C[c].nombre }}</p>
+                <ol>
+                  {% for e in lista[1:5] %}
+                  <li><span class="pa-id"><b translate="no">{{ e.rotulo }}</b><span>{{ e.municipio.nombre }}, {{ e.municipio.provincia.nombre }}</span></span><span class="pa-precio">{{ e.precios[c]|cifra }}</span>{% if e.mapa %}<a class="pa-ir" href="{{ e.mapa }}" target="_blank" rel="nofollow noopener" aria-label="Cómo llegar a {{ e.rotulo }}, {{ e.municipio.nombre }}">Ir</a>{% endif %}</li>
+                  {% endfor %}
+                </ol>
+              </div>
+              <p class="poste-pie">
+                <span>€ por litro · precios de las {{ actualizado|hora }}</span>
+                <span class="poste-enlaces">
+                  <a href="{{ url(p.municipio.ruta) }}">Ver {{ p.municipio.nombre }}</a>
+                  {% if p.mapa %}<a class="poste-llegar" href="{{ p.mapa }}" target="_blank" rel="nofollow noopener">Cómo llegar</a>{% endif %}
+                </span>
+              </p>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {# Tras buscar o usar la ubicación, el script pinta aquí el resultado. #}
+          <div data-poste-dinamico hidden aria-live="polite"></div>
+          <p class="poste-aviso" data-poste-aviso hidden aria-live="polite"></p>
+        </div>
+      </div>
     </div>
   </div>
 </section>

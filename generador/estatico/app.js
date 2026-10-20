@@ -435,119 +435,155 @@
   // ---------- el poste de la portada ----------
   var poste = document.querySelector("[data-poste]");
   if (poste) {
-    var pEl = {
-      contexto: poste.querySelector("[data-poste-contexto]"),
-      rotulo: poste.querySelector("[data-poste-rotulo]"),
-      lugar: poste.querySelector("[data-poste-lugar]"),
-      nota: poste.querySelector("[data-poste-nota]"),
-      ver: poste.querySelector("[data-poste-ver]"),
-      ir: poste.querySelector("[data-poste-ir]")
-    };
-    var notaInicial = pEl.nota.textContent;
-    $$("[data-poste-precio]", poste).forEach(function (el) {
-      var t = el.textContent.trim();
-      if (/\d/.test(t) && !movimientoReducido) { construirRodillo(el, t); el.classList.add("is-in"); }
-    });
+    var estatico = poste.querySelector("[data-poste-estatico]");
+    var dinamico = poste.querySelector("[data-poste-dinamico]");
+    var aviso = poste.querySelector("[data-poste-aviso]");
+    var inputPoste = document.querySelector("[data-poste-buscar]");
     var estacionesP = null;
     var cargarEstaciones = function () {
-      if (!estacionesP) estacionesP = fetch(BASE + "/estaciones.json").then(function (r) { return r.json(); });
+      if (!estacionesP) estacionesP = fetch(BASE + "/estaciones.json").then(function (r) {
+        if (!r.ok) throw new Error("http " + r.status);
+        return r.json();
+      });
       return estacionesP;
     };
+    var avisar = function (texto) { aviso.textContent = texto || ""; aviso.hidden = !texto; };
     // Cada estación: [lat, lon, rótulo, dirección, municipio, url, diésel, 95, 98, GLP]
-    var peninsula = function (e) {
-      var lat = e[0], lon = e[1];
-      if (lat < 30) return false;                                              // Canarias
-      if (lat > 35.1 && lat < 36 && lon > -5.45 && lon < -2.85) return false;  // Ceuta y Melilla
-      return true;
-    };
-    var masBarata = function (conjunto, c) {
+    var ordenar = function (conjunto, c) {
       var idx = 6 + COMBS.indexOf(c);
       var con = conjunto.filter(function (x) { return x.e[idx] != null; });
-      if (con.length >= 20) {
+      if (con.length >= 20) {  // fuera los errores evidentes de la fuente, como en el resto de la web
         var orden = con.map(function (x) { return x.e[idx]; }).sort(function (a, b) { return a - b; });
-        var suelo = orden[Math.floor(orden.length / 2)] * 0.8;  // fuera los errores evidentes de la fuente
+        var suelo = orden[Math.floor(orden.length / 2)] * 0.8;
         con = con.filter(function (x) { return x.e[idx] >= suelo; });
       }
-      con.sort(function (a, b) { return a.e[idx] - b.e[idx] || (a.d || 0) - (b.d || 0); });
-      return { mejor: con[0] || null, n: con.length };
+      return con.sort(function (a, b) { return a.e[idx] - b.e[idx] || (a.d || 0) - (b.d || 0); });
     };
-    var actual = { tipo: "inicial", conjunto: null, texto: null };
-    var pintar = function () {
-      if (!actual.conjunto) return;
-      var c = comb(), r = masBarata(actual.conjunto, c), x = r.mejor;
-      if (!x) { pEl.contexto.textContent = actual.texto.vacio(c); return; }
-      var e = x.e;
-      pEl.contexto.textContent = actual.texto.cabeza(c, r.n);
-      pEl.rotulo.textContent = e[2];
-      pEl.lugar.innerHTML = esc(e[3]) + ' · <a href="' + e[5] + '">' + esc(e[4]) + "</a>";
-      COMBS.forEach(function (k, i) { rodar(poste.querySelector('[data-poste-precio="' + k + '"]'), e[6 + i]); });
-      pEl.nota.textContent = actual.texto.nota(x);
-      pEl.ver.href = actual.texto.verUrl(e);
-      pEl.ver.textContent = actual.texto.verTexto(e);
-      if (pEl.ir) pEl.ir.href = "https://www.google.com/maps/dir/?api=1&destination=" + e[0] + "," + e[1];
-    };
-    alCambiarComb.push(function () {
-      if (actual.tipo !== "inicial") { pintar(); return; }
-      cargarEstaciones().then(function (lista) {
-        if (actual.tipo !== "inicial") return;
-        actual.conjunto = lista.filter(peninsula).map(function (e) { return { e: e }; });
-        actual.texto = {
-          cabeza: function () { return "La más barata de la Península, ahora"; },
-          vacio: function () { return "Sin datos de este combustible"; },
-          nota: function () { return notaInicial; },
-          verUrl: function (e) { return e[5]; },
-          verTexto: function (e) { return "Ver " + e[4]; }
-        };
-        pintar();
+    var mapa = function (e) { return "https://www.google.com/maps/dir/?api=1&destination=" + e[0] + "," + e[1]; };
+    // Cifra del poste: la parte entera fija y los decimales rodando desde cero.
+    var cifraQueRueda = function (el, valor) {
+      var texto = litro.format(valor), partes = texto.split(",");
+      if (movimientoReducido) { el.textContent = texto; return; }
+      var dig = document.createElement("span");
+      dig.className = "roll__digits";
+      dig.setAttribute("aria-hidden", "true");
+      dig.appendChild(document.createTextNode(partes[0]));
+      var sep = document.createElement("span"); sep.className = "roll__sep"; sep.textContent = ","; dig.appendChild(sep);
+      var tiras = [];
+      for (var k = 0; k < partes[1].length; k++) {
+        var col = document.createElement("span"); col.className = "roll__col";
+        var tira = document.createElement("span"); tira.className = "roll__strip";
+        tira.style.setProperty("--d", 0); tira.style.setProperty("--i", k);
+        col.appendChild(tira); dig.appendChild(col); tiras.push(tira);
+      }
+      var dicho = document.createElement("span"); dicho.className = "oculto"; dicho.textContent = texto;
+      el.replaceChildren(dicho, dig);
+      el.classList.add("roll", "is-in");
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { tiras.forEach(function (t, j) { t.style.setProperty("--d", partes[1][j]); }); });
       });
-    });
+    };
+    var actual = null;
+    var pintar = function () {
+      if (!actual) return;
+      var c = comb(), lista = ordenar(actual.conjunto, c), idx = 6 + COMBS.indexOf(c);
+      var x = lista[0];
+      if (!x) {
+        dinamico.innerHTML = '<div class="poste-cabeza"><p class="poste-contexto">' + esc(actual.cabeza(c)) +
+          '</p><p class="poste-rotulo">Sin ' + esc(NOMBRES[c]) + "</p></div>" +
+          '<p class="poste-vacio">' + esc(actual.vacio(c)) + "</p>" + filasCombustible(null);
+        return;
+      }
+      var e = x.e;
+      var alt = lista.slice(1, 5).map(function (y) {
+        var f = y.e;
+        return '<li><span class="pa-id"><b translate="no">' + esc(f[2]) + "</b><span>" +
+          (y.d != null ? "a " + km.format(y.d) + " km · " : "") + esc(f[3]) + ", " + esc(f[4]) +
+          '</span></span><span class="pa-precio">' + precioHTML(f[idx]) +
+          '</span><a class="pa-ir" href="' + mapa(f) + '" target="_blank" rel="nofollow noopener" aria-label="Cómo llegar a ' +
+          esc(f[2]) + '">Ir</a></li>';
+      }).join("");
+      dinamico.innerHTML =
+        '<div class="poste-cabeza"><p class="poste-contexto">' + esc(actual.cabeza(c, lista.length)) + "</p>" +
+        '<p class="poste-rotulo" translate="no">' + esc(e[2]) + "</p>" +
+        '<p class="poste-lugar">' + (x.d != null ? "a " + km.format(x.d) + " km · " : "") + esc(e[3]) +
+        ' · <a href="' + e[5] + '">' + esc(e[4]) + "</a></p></div>" +
+        filasCombustible(e) +
+        (alt ? '<div class="poste-alt"><p class="poste-alt-titulo">' + esc(actual.siguientes(c)) + "</p><ol>" + alt + "</ol></div>" : "") +
+        '<p class="poste-pie"><span>' + esc(actual.nota(lista.length)) + '</span><span class="poste-enlaces">' +
+        '<a href="' + actual.ver(e) + '">' + esc(actual.verTexto(e)) + "</a>" +
+        '<a class="poste-llegar" href="' + mapa(e) + '" target="_blank" rel="nofollow noopener">Cómo llegar</a></span></p>';
+      $$("[data-cifra]", dinamico).forEach(function (el) {
+        var v = parseFloat(el.getAttribute("data-v"));
+        if (!isNaN(v)) cifraQueRueda(el, v);
+      });
+    };
+    var filasCombustible = function (e) {
+      var c = comb();
+      return '<ul class="poste-filas" aria-label="Precios por litro">' + COMBS.map(function (k, i) {
+        var v = e ? e[6 + i] : null;
+        return '<li><a href="?c=' + k + '" data-elegir="' + k + '" class="poste-fila" aria-current="' + (k === c) + '">' +
+          '<span class="poste-comb">' + { diesel: "Diésel", g95: "Gasolina 95", g98: "Gasolina 98", glp: "GLP" }[k] + "</span>" +
+          '<span class="poste-cifra" data-cifra' + (v != null ? ' data-v="' + v + '"' : "") + ">" + (v != null ? litro.format(v) : "—") +
+          "</span></a></li>";
+      }).join("") + "</ul>";
+    };
+    var mostrar = function (nuevo) {
+      actual = nuevo;
+      avisar("");
+      estatico.hidden = true;
+      dinamico.hidden = false;
+      pintar();
+      if (innerWidth < 960) poste.scrollIntoView({ behavior: movimientoReducido ? "auto" : "smooth", block: "start" });
+    };
+    alCambiarComb.push(function () { pintar(); });
+
     window.__ponerMunicipio = function (url, nombre, input) {
       if (input) input.value = nombre || "";
-      poste.classList.add("cargando");
+      avisar("Cargando los precios de " + nombre + "…");
       cargarEstaciones().then(function (lista) {
-        poste.classList.remove("cargando");
         var del = lista.filter(function (e) { return e[5] === url; }).map(function (e) { return { e: e }; });
-        actual = {
-          tipo: "municipio", conjunto: del,
-          texto: {
-            cabeza: function () { return "La más barata de " + nombre; },
-            vacio: function (c) { return "Ninguna gasolinera de " + nombre + " vende " + NOMBRES[c]; },
-            nota: function () { return del.length + (del.length === 1 ? " gasolinera" : " gasolineras") + " · € por litro"; },
-            verUrl: function () { return url; },
-            verTexto: function () { return del.length > 1 ? "Ver las " + del.length : "Ver la gasolinera"; }
-          }
-        };
-        pintar();
-      }).catch(function () {
-        poste.classList.remove("cargando");
-        pEl.nota.textContent = "No se pudieron cargar los precios. Inténtalo de nuevo.";
-      });
+        var n = del.length;
+        mostrar({
+          conjunto: del,
+          cabeza: function (c) { return "La más barata de " + nombre + " · " + NOMBRES[c]; },
+          vacio: function (c) { return "Ninguna gasolinera de " + nombre + " vende " + NOMBRES[c] + "."; },
+          siguientes: function () { return "Siguientes en " + nombre; },
+          nota: function () { return n + (n === 1 ? " gasolinera" : " gasolineras") + " · € por litro"; },
+          ver: function () { return url; },
+          verTexto: function () { return n > 1 ? "Ver las " + n : "Ver la gasolinera"; }
+        });
+      }).catch(function () { avisar("No se pudieron cargar los precios. Comprueba la conexión e inténtalo de nuevo."); });
     };
+    $$("[data-poste-ciudad]").forEach(function (a) {
+      a.addEventListener("click", function (ev) {
+        if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.button === 1) return;
+        ev.preventDefault();
+        window.__ponerMunicipio(a.getAttribute("href"), a.getAttribute("data-nombre"), inputPoste);
+      });
+    });
     $$("[data-poste-ubicacion]").forEach(function (b) {
       b.addEventListener("click", function () {
         var r = poste.getBoundingClientRect();
         if (r.top < 0 || r.bottom > innerHeight) poste.scrollIntoView({ behavior: movimientoReducido ? "auto" : "smooth", block: "center" });
-        pEl.nota.textContent = "Buscando tu ubicación…";
+        avisar("Buscando tu ubicación…");
         ubicar(function (lat, lon) {
-          poste.classList.add("cargando");
+          avisar("Buscando gasolineras a tu alrededor…");
           cargarEstaciones().then(function (lista) {
-            poste.classList.remove("cargando");
             var cerca = lista.map(function (e) { return { e: e, d: distancia(lat, lon, e[0], e[1]) }; })
               .filter(function (x) { return x.d <= 10; });
-            if (!cerca.length) { pEl.nota.textContent = "No hay gasolineras a menos de 10 km. Escribe tu municipio."; return; }
-            actual = {
-              tipo: "ubicacion", conjunto: cerca,
-              texto: {
-                cabeza: function (c, n) { return "La más barata a menos de 10 km, entre " + n; },
-                vacio: function (c) { return "Ninguna gasolinera cercana vende " + NOMBRES[c]; },
-                nota: function (x) { return "A " + km.format(x.d) + " km de ti · € por litro"; },
-                verUrl: function (e) { return e[5]; },
-                verTexto: function (e) { return "Ver " + e[4]; }
-              }
-            };
-            pintar();
-          });
-        }, function (msg) { pEl.nota.textContent = msg; });
+            if (!cerca.length) { avisar("No hay gasolineras a menos de 10 km. Escribe tu municipio."); return; }
+            mostrar({
+              conjunto: cerca,
+              cabeza: function (c) { return "La más barata a menos de 10 km · " + NOMBRES[c]; },
+              vacio: function (c) { return "Ninguna gasolinera cercana vende " + NOMBRES[c] + "."; },
+              siguientes: function () { return "Otras cerca de ti"; },
+              nota: function (n) { return n + " gasolineras a menos de 10 km · € por litro"; },
+              ver: function (e) { return e[5]; },
+              verTexto: function (e) { return "Ver " + e[4]; }
+            });
+          }).catch(function () { avisar("No se pudieron cargar los precios. Inténtalo de nuevo."); });
+        }, function (msg) { avisar(msg); });
       });
     });
   }

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% import "macros.html" as mc with context %}
+{% block titulo %}{{ a.titulo }}{% endblock %}
+{% block descripcion %}{{ a.descripcion }}{% endblock %}
+{% block og_tipo %}article{% endblock %}
+{% block cabeza %}
+<meta property="article:published_time" content="{{ a.fecha.isoformat() }}">
+<meta property="article:modified_time" content="{{ a.actualizado.isoformat() }}">
+<script type="application/ld+json">{{ {"@context": "https://schema.org", "@type": "NewsArticle", "headline": a.titulo, "description": a.descripcion, "datePublished": a.fecha.isoformat(), "dateModified": a.actualizado.isoformat(), "inLanguage": "es-ES", "mainEntityOfPage": abs_url(ruta), "author": {"@type": "Organization", "name": sitio.nombre, "url": abs_url("/")}, "publisher": {"@type": "Organization", "name": sitio.nombre}}|tojson }}</script>
+{% endblock %}
+{% block contenido %}
+{{ mc.migas([("Noticias", "/noticias/"), (a.fecha|fecha_media, none)]) }}
+<article class="articulo">
+  <h1>{{ a.titulo }}</h1>
+  <p class="sello">{{ sitio.nombre }} · {{ a.fecha|fecha_larga }} · datos de las {{ a.actualizado|hora }}</p>
+  <p class="entradilla">{{ a.entradilla }}</p>
+  {% for s in a.secciones %}
+  <section>
+    <h2>{{ s.titulo }}</h2>
+    {% for p in s.parrafos %}<p>{{ p }}</p>{% endfor %}
+    {% if s.tabla %}
+    <div class="tabla-envoltura">
+    <table class="tabla">
+      <thead><tr>{% for c in s.tabla.cabecera %}<th scope="col"{% if not loop.first %} class="num"{% endif %}>{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for fila in s.tabla.filas %}<tr>{% for celda in fila %}<td{% if loop.last or (loop.index > 1 and s.tabla.cabecera[0] == "Provincia") %} class="num"{% endif %}>{% if celda is string %}{{ celda }}{% else %}<a href="{{ url(celda[1]) }}">{{ celda[0] }}</a>{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody>
+    </table>
+    </div>
+    {% endif %}
+  </section>
+  {% endfor %}
+  <nav class="paginacion">
+    {% if anterior %}<a href="{{ url(anterior.ruta) }}">← {{ anterior.fecha|fecha_media }}</a>{% else %}<span></span>{% endif %}
+    {% if siguiente %}<a href="{{ url(siguiente.ruta) }}">{{ siguiente.fecha|fecha_media }} →</a>{% endif %}
+  </nav>
+</article>
+{% endblock %}

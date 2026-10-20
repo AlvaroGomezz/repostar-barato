@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% import "macros.html" as mc with context %}
+{% block titulo %}Sobre {{ sitio.nombre }}: de dónde salen los precios{% endblock %}
+{% block descripcion %}Cómo obtenemos y calculamos los precios de la gasolina y el diésel que publicamos, con qué frecuencia se actualizan y sus limitaciones.{% endblock %}
+{% block contenido %}
+{{ mc.migas([("Sobre esta web", none)]) }}
+<article class="articulo">
+<h1>Sobre {{ sitio.nombre }}</h1>
+<p>{{ sitio.nombre }} es un comparador gratuito de precios de carburantes en España. Nuestro objetivo es sencillo: que encuentres en pocos segundos la gasolinera más barata de tu zona.</p>
+<h2>De dónde salen los datos</h2>
+<p>Todas las gasolineras de venta al público en España deben comunicar sus precios al Ministerio para la Transición Ecológica y el Reto Demográfico, que los publica como datos abiertos en el <a href="https://geoportalgasolineras.es/" rel="nofollow noopener">Geoportal de Hidrocarburos</a>. Descargamos esa información varias veces al día de forma automática; la última actualización es del {{ actualizado|fecha_larga }} a las {{ actualizado|hora }}.</p>
+<h2>Cómo calculamos las medias</h2>
+<ul>
+  <li>Las medias son aritméticas: cada gasolinera cuenta lo mismo, independientemente de cuánto venda.</li>
+  <li>Solo incluimos gasolineras de venta al público (no las cooperativas reservadas a socios).</li>
+  <li>Descartamos precios claramente erróneos (por debajo de 0,30 € o por encima de 4 €).</li>
+  <li>En los rankings nacionales separamos Canarias, Ceuta y Melilla porque tienen impuestos distintos.</li>
+  <li>Las noticias diarias se redactan automáticamente a partir de estos mismos datos, sin opiniones ni previsiones.</li>
+</ul>
+<h2>Limitaciones</h2>
+<p>Las gasolineras pueden cambiar sus precios en cualquier momento y a veces tardan en comunicarlos. Los precios no incluyen descuentos de tarjetas de fidelización ni promociones. Confirma siempre el precio en el surtidor antes de repostar.</p>
+{% if sitio.email %}<h2>Contacto</h2><p>Puedes escribirnos a <a href="mailto:{{ sitio.email }}">{{ sitio.email }}</a>.</p>{% endif %}
+</article>
+{% endblock %}

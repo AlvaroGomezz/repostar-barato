@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% import "macros.html" as mc with context %}
+{% block titulo %}Aviso legal · {{ sitio.nombre }}{% endblock %}
+{% block descripcion %}Aviso legal de {{ sitio.nombre }}.{% endblock %}
+{% block contenido %}
+{{ mc.migas([("Aviso legal", none)]) }}
+<article class="articulo">
+<h1>Aviso legal</h1>
+<h2>Titular</h2>
+<p>En cumplimiento de la Ley 34/2002, de Servicios de la Sociedad de la Información y de Comercio Electrónico (LSSI-CE), se informa de que esta web es propiedad de <strong>{{ sitio.titular or "[nombre del titular pendiente]" }}</strong>, con NIF {{ sitio.nif or "[pendiente]" }} y correo electrónico de contacto {{ sitio.email or "[pendiente]" }}.</p>
+<h2>Objeto</h2>
+<p>{{ sitio.nombre }} ofrece información gratuita sobre los precios de los carburantes en España a partir de los datos abiertos publicados por el Ministerio para la Transición Ecológica y el Reto Demográfico.</p>
+<h2>Responsabilidad</h2>
+<p>La información se ofrece tal como la publica la fuente oficial, con fines meramente informativos. El titular no garantiza su exactitud ni su actualización en todo momento y no se responsabiliza de las decisiones tomadas a partir de ella. Los precios definitivos son los que aplique cada estación de servicio.</p>
+<h2>Fuente de los datos</h2>
+<p>Fuente: Ministerio para la Transición Ecológica y el Reto Demográfico. Información reutilizada conforme a la Ley 37/2007 sobre reutilización de la información del sector público. Los datos se han tratado (agregados, ordenados y resumidos) para su presentación.</p>
+<h2>Propiedad intelectual</h2>
+<p>El diseño y los textos propios de esta web pertenecen a su titular. Las marcas comerciales de las gasolineras pertenecen a sus respectivos propietarios y se citan solo para identificar cada estación.</p>
+<h2>Publicidad</h2>
+<p>Esta web puede mostrar anuncios de terceros (como Google AdSense) para financiarse. Más información en la <a href="{{ url('/cookies/') }}">política de cookies</a>.</p>
+</article>
+{% endblock %}

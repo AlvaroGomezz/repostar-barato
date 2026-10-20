@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block titulo %}Página no encontrada · {{ sitio.nombre }}{% endblock %}
+{% block cabeza %}<meta name="robots" content="noindex">{% endblock %}
+{% block contenido %}
+<section class="portada">
+  <h1>No encontramos esta página</h1>
+  <p>Busca tu municipio para ver sus gasolineras:</p>
+  <form class="buscador" role="search" onsubmit="return false">
+    <label for="q" class="oculto">Busca tu municipio</label>
+    <input id="q" type="search" placeholder="Escribe tu pueblo o ciudad…" autocomplete="off" data-buscador>
+    <ul class="sugerencias" data-sugerencias hidden></ul>
+  </form>
+  <p><a href="{{ url('/') }}">Volver a la portada</a></p>
+</section>
+{% endblock %}

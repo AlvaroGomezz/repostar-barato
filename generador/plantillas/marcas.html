@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% import "macros.html" as mc with context %}
+{% block titulo %}Gasolineras más baratas por marca: ranking de precios hoy{% endblock %}
+{% block descripcion %}¿Qué marca de gasolinera es más barata? Precio medio del diésel y la gasolina 95 en Repsol, Cepsa (Moeve), Galp, Ballenoil, Plenergy, Shell y más, con datos oficiales de hoy.{% endblock %}
+{% block contenido %}
+{{ mc.migas([("Marcas", none)]) }}
+<h1>¿Qué gasolinera es más barata? Ranking por marcas</h1>
+{{ mc.sello() }}
+<p>Precio medio de cada cadena con al menos 20 gasolineras en España, ordenado por el precio del diésel. La media nacional está en {{ nac.diesel.media|precio }} (diésel) y {{ nac.g95.media|precio }} (gasolina 95).</p>
+<div class="tabla-envoltura">
+<table class="tabla ordenable">
+  <thead><tr><th scope="col">Marca</th><th scope="col" class="num" data-orden="1">Diésel</th><th scope="col" class="num" data-orden="2">Gasolina 95</th><th scope="col" class="num" data-orden="3">Gasolineras</th></tr></thead>
+  <tbody>
+  {% for marca, r in lista %}
+  <tr><td><a href="{{ url(marca.ruta) }}">{{ marca.nombre }}</a></td>
+  <td class="num" data-valor="{{ r.diesel.media or 99 }}">{{ r.diesel.media|precio }}</td>
+  <td class="num" data-valor="{{ r.g95.media or 99 }}">{{ r.g95.media|precio }}</td>
+  <td class="num" data-valor="{{ marca.estaciones|length }}">{{ marca.estaciones|length|numero(0) }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="nota">Las medias mezclan gasolineras de zonas con precios distintos (por ejemplo, Canarias), así que compara también por provincia.</p>
+{% endblock %}

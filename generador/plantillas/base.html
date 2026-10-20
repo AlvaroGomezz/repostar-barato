@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titulo %}{{ sitio.nombre }}{% endblock %}</title>
+<meta name="description" content="{% block descripcion %}{{ sitio.lema }}{% endblock %}">
+<link rel="canonical" href="{{ abs_url(ruta) }}">
+<meta property="og:type" content="{% block og_tipo %}website{% endblock %}">
+<meta property="og:title" content="{{ self.titulo() }}">
+<meta property="og:description" content="{{ self.descripcion() }}">
+<meta property="og:url" content="{{ abs_url(ruta) }}">
+<meta property="og:site_name" content="{{ sitio.nombre }}">
+<meta property="og:locale" content="es_ES">
+<meta name="theme-color" content="#0f5132">
+{% if sitio.search_console %}<meta name="google-site-verification" content="{{ sitio.search_console }}">{% endif %}
+<link rel="icon" href="{{ url('/estatico/icono.svg') }}" type="image/svg+xml">
+<link rel="stylesheet" href="{{ url('/estatico/estilo.css') }}?v={{ actualizado.strftime('%Y%m%d') }}">
+{% if sitio.adsense %}
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ sitio.adsense }}" crossorigin="anonymous"></script>
+{% endif %}
+{% block cabeza %}{% endblock %}
+</head>
+<body>
+<header class="cabecera">
+  <div class="contenedor cabecera-fila">
+    <a class="logo" href="{{ url('/') }}"><img src="{{ url('/estatico/icono.svg') }}" alt="" width="28" height="28">{{ sitio.nombre }}</a>
+    <nav class="menu" aria-label="Principal">
+      <a href="{{ url('/') }}#provincias">Provincias</a>
+      <a href="{{ url('/marcas/') }}">Marcas</a>
+      <a href="{{ url('/noticias/') }}">Noticias</a>
+    </nav>
+  </div>
+</header>
+<main class="contenedor">
+{% block contenido %}{% endblock %}
+</main>
+<footer class="pie">
+  <div class="contenedor">
+    <p><strong>{{ sitio.nombre }}</strong> · Precios oficiales del <a href="https://geoportalgasolineras.es/" rel="nofollow noopener">Geoportal de Hidrocarburos</a> (Ministerio para la Transición Ecológica y el Reto Demográfico). Última actualización: {{ actualizado|fecha_media }} a las {{ actualizado|hora }}.</p>
+    <p>Los precios son orientativos y pueden cambiar en cualquier momento; confírmalos en el surtidor.</p>
+    <p class="pie-enlaces"><a href="{{ url('/sobre/') }}">Sobre esta web</a> · <a href="{{ url('/aviso-legal/') }}">Aviso legal</a> · <a href="{{ url('/privacidad/') }}">Privacidad</a> · <a href="{{ url('/cookies/') }}">Cookies</a></p>
+  </div>
+</footer>
+<script>window.BASE = {{ sitio.base|tojson }};</script>
+<script src="{{ url('/estatico/app.js') }}?v={{ actualizado.strftime('%Y%m%d') }}" defer></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+# Ajustes de la web. Cambia estos valores y la próxima publicación los aplicará.
+
+nombre = "Repostar Barato"
+lema = "Precios de gasolina y diésel actualizados cada pocas horas"
+
+# Dirección pública de la web (sin barra final). Cuando compres un dominio, cámbiala.
+url = "https://alvarogomezz.github.io/repostar-barato"
+
+# Google AdSense: el identificador de editor, tipo "ca-pub-1234567890123456".
+# Vacío = no se muestran anuncios.
+adsense = ""
+
+# Google Search Console: el código del "meta tag" de verificación (solo el content="...").
+search_console = ""
+
+# Datos del titular para el aviso legal (obligatorios en España si la web tiene ingresos).
+titular = ""
+nif = ""
+email = ""

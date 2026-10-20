@@ -1,0 +1,63 @@
+{% macro migas(items) %}
+<nav class="migas" aria-label="Ruta">
+  <a href="{{ url('/') }}">Inicio</a>
+  {% for nombre, r in items %} › {% if r %}<a href="{{ url(r) }}">{{ nombre }}</a>{% else %}<span>{{ nombre }}</span>{% endif %}{% endfor %}
+</nav>
+<script type="application/ld+json">{{ ld_migas(items)|tojson }}</script>
+{% endmacro %}
+
+{% macro sello() %}
+<p class="sello"><span class="punto-vivo"></span> Actualizado el {{ actualizado|fecha_larga }} a las {{ actualizado|hora }}</p>
+{% endmacro %}
+
+{% macro tabla_estaciones(filas, columnas, deposito) %}
+<div class="tabla-envoltura">
+<table class="tabla estaciones ordenable">
+  <thead><tr>
+    <th scope="col">Gasolinera</th>
+    {% for c in columnas %}<th scope="col" class="num" data-orden="{{ loop.index }}">{{ C[c].nombre }}</th>{% endfor %}
+  </tr></thead>
+  <tbody>
+  {% for f in filas %}
+    <tr>
+      <td>
+        <strong class="rotulo">{{ f.e.rotulo }}</strong>
+        <span class="dir">{{ f.e.direccion }}{% if f.e.mapa %} · <a href="{{ f.e.mapa }}" rel="nofollow noopener" target="_blank">Cómo llegar</a>{% endif %}</span>
+        <span class="horario">{% if f.e.abierta_24h %}<span class="etiqueta">24 h</span>{% else %}{{ f.e.horario }}{% endif %}</span>
+        {% if f.extras %}<span class="extras">{% for n, p in f.extras %}{{ n }} {{ p|precio }}{% if not loop.last %} · {% endif %}{% endfor %}</span>{% endif %}
+      </td>
+      {% for c, p, barato in f.celdas %}
+      <td class="num precio{% if barato %} barato{% endif %}" data-valor="{{ p if p is not none else 99 }}">{{ p|precio }}</td>
+      {% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endmacro %}
+
+{% macro lista_top(estaciones, clave, dist=none, mostrar_prov=false) %}
+<ol class="ranking">
+{% for e in estaciones %}
+  <li>
+    <span class="ranking-precio">{{ e.precios[clave]|precio }}</span>
+    <span class="ranking-nombre"><strong>{{ e.rotulo }}</strong> · {{ e.direccion }}</span>
+    <span class="ranking-lugar"><a href="{{ url(e.municipio.ruta) }}">{{ e.municipio.nombre }}</a>{% if mostrar_prov %}, {{ e.municipio.provincia.nombre }}{% endif %}{% if dist and e.id in dist %} · a {{ dist[e.id]|numero(1) }} km{% endif %}</span>
+  </li>
+{% endfor %}
+</ol>
+{% endmacro %}
+
+{% macro faq(preguntas) %}
+<section class="bloque faq">
+  <h2>Preguntas frecuentes</h2>
+  {% for p, r in preguntas %}
+  <details{% if loop.first %} open{% endif %}><summary>{{ p }}</summary><p>{{ r }}</p></details>
+  {% endfor %}
+</section>
+<script type="application/ld+json">{{ ld_faq(preguntas)|tojson }}</script>
+{% endmacro %}
+
+{% macro leyenda() %}
+<p class="leyenda"><span class="muestra s1"></span> Diésel <span class="muestra s2"></span> Gasolina 95 <span class="nota">· media diaria</span></p>
+{% endmacro %}

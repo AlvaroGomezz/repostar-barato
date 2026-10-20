@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% import "macros.html" as mc with context %}
+{% set n = m.estaciones|length %}
+{% block titulo %}Gasolinera{% if n > 1 %}s más baratas{% else %} más barata{% endif %} en {{ m.nombre }} hoy{% if res.diesel.minimo %} · Diésel {{ res.diesel.minimo|precio }}{% endif %}{% endblock %}
+{% block descripcion %}Precios actualizados el {{ actualizado|fecha_corta }} a las {{ actualizado|hora }} de {% if n > 1 %}las {{ n }} gasolineras{% else %}la gasolinera{% endif %} de {{ m.nombre }} ({{ m.provincia.nombre }}).{% if res.diesel.mas_barata %} Diésel más barato: {{ res.diesel.mas_barata.rotulo }} a {{ res.diesel.minimo|precio }}.{% endif %} Compara gasolina 95, 98 y GLP.{% endblock %}
+{% block contenido %}
+{{ mc.migas([(m.provincia.nombre, m.provincia.ruta), (m.nombre, none)]) }}
+<h1>Gasolinera{% if n > 1 %}s más baratas{% else %} más barata{% endif %} en {{ m.nombre }}</h1>
+{{ mc.sello() }}
+
+<section class="tarjetas">
+  {% for clave in ["diesel", "g95"] %}{% set r = res[clave] %}{% if r.n %}
+  <div class="tarjeta">
+    <span class="tarjeta-titulo">{{ C[clave].nombre }} más {{ "barato" if clave == "diesel" else "barata" }}</span>
+    <span class="tarjeta-precio">{{ r.minimo|precio }}</span>
+    <span class="tarjeta-detalle">{{ r.mas_barata.rotulo }} · {{ r.mas_barata.direccion }}</span>
+    {% if res_p[clave].media %}{% set dif = r.media - res_p[clave].media %}
+    <span class="tarjeta-detalle">Media aquí {{ r.media|precio }} · {% if dif > 0.0005 %}<span class="sube">{{ dif|centimos }} más que la provincia</span>{% elif dif < -0.0005 %}<span class="baja">{{ dif|centimos }} menos que la provincia</span>{% else %}igual que la provincia{% endif %}</span>
+    {% endif %}
+  </div>
+  {% endif %}{% endfor %}
+</section>
+
+{% if res.diesel.n > 1 and res.diesel.maximo > res.diesel.minimo %}
+<p class="aviso-ahorro">💡 Elegir la gasolinera más barata de {{ m.nombre }} en lugar de la más cara te ahorra <strong>{{ ((res.diesel.maximo - res.diesel.minimo) * deposito)|precio(2) }}</strong> en un depósito de {{ deposito }} litros de diésel.</p>
+{% endif %}
+
+<section class="bloque">
+  <h2>Precios de {% if n > 1 %}todas las gasolineras{% else %}la gasolinera{% endif %} de {{ m.nombre }}</h2>
+  {% if n > 1 %}<p class="nota">Ordenadas por precio del diésel. Pulsa en otra columna para ordenar por ese combustible.</p>{% endif %}
+  {{ mc.tabla_estaciones(filas, columnas, deposito) }}
+</section>
+
+{% if cerca_d or cerca_g %}
+<div class="dos-columnas">
+  {% if cerca_d %}
+  <section class="bloque">
+    <h2>Diésel más barato cerca de {{ m.nombre }}</h2>
+    {{ mc.lista_top(cerca_d, "diesel", dist=dist) }}
+  </section>
+  {% endif %}
+  {% if cerca_g %}
+  <section class="bloque">
+    <h2>Gasolina 95 más barata cerca de {{ m.nombre }}</h2>
+    {{ mc.lista_top(cerca_g, "g95", dist=dist) }}
+  </section>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if grafico %}
+<section class="bloque">
+  <h2>Evolución del precio medio en {{ m.nombre }}</h2>
+  {{ mc.leyenda() }}
+  {{ grafico }}
+</section>
+{% endif %}
+
+{{ mc.faq(faq) }}
+
+{% if vecinos %}
+<section class="bloque">
+  <h2>Municipios cercanos</h2>
+  <p class="enlaces-lista">{% for v in vecinos %}<a href="{{ url(v.ruta) }}">{{ v.nombre }}</a>{% endfor %}</p>
+  <p><a href="{{ url(m.provincia.ruta) }}">Ver todas las gasolineras de {{ m.provincia.nombre }} →</a></p>
+</section>
+{% endif %}
+{% endblock %}

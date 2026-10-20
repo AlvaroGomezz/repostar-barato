@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% import "macros.html" as mc with context %}
+{% block titulo %}Política de privacidad · {{ sitio.nombre }}{% endblock %}
+{% block descripcion %}Política de privacidad de {{ sitio.nombre }}.{% endblock %}
+{% block contenido %}
+{{ mc.migas([("Privacidad", none)]) }}
+<article class="articulo">
+<h1>Política de privacidad</h1>
+<p><strong>Responsable:</strong> {{ sitio.titular or "[nombre del titular pendiente]" }} ({{ sitio.email or "[correo pendiente]" }}).</p>
+<h2>Qué datos tratamos</h2>
+<p>{{ sitio.nombre }} no tiene registro de usuarios ni formularios, y no recoge tus datos personales directamente.</p>
+<ul>
+  <li><strong>Ubicación:</strong> si usas el botón «cerca de mí», tu navegador te pide permiso para compartir tu ubicación. Se usa solo en tu dispositivo para calcular distancias; no se envía ni se guarda en ningún servidor.</li>
+  <li><strong>Publicidad:</strong> si la web muestra anuncios de Google, Google y sus socios pueden usar cookies e identificadores para mostrar y medir anuncios, siempre según el consentimiento que des en el aviso de cookies. Consulta <a href="https://policies.google.com/technologies/partner-sites?hl=es" rel="nofollow noopener">cómo usa Google los datos</a>.</li>
+  <li><strong>Alojamiento:</strong> el proveedor de alojamiento puede registrar datos técnicos de las visitas (como la dirección IP) por motivos de seguridad.</li>
+</ul>
+<h2>Tus derechos</h2>
+<p>Puedes ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad escribiendo a {{ sitio.email or "[correo pendiente]" }}, y reclamar ante la Agencia Española de Protección de Datos (aepd.es).</p>
+</article>
+{% endblock %}

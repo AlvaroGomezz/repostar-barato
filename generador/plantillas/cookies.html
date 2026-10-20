@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% import "macros.html" as mc with context %}
+{% block titulo %}Política de cookies · {{ sitio.nombre }}{% endblock %}
+{% block descripcion %}Política de cookies de {{ sitio.nombre }}.{% endblock %}
+{% block contenido %}
+{{ mc.migas([("Cookies", none)]) }}
+<article class="articulo">
+<h1>Política de cookies</h1>
+<p>{{ sitio.nombre }} no usa cookies propias.</p>
+{% if sitio.adsense %}
+<p>Para financiarse, la web muestra anuncios de Google AdSense. Google y sus socios pueden usar cookies para mostrar anuncios personalizados y medir su rendimiento. Al entrar por primera vez verás un aviso para aceptar, rechazar o configurar estas cookies; puedes cambiar tu elección en cualquier momento desde el enlace de preferencias de privacidad que muestra ese aviso.</p>
+{% else %}
+<p>Actualmente no se usan cookies de terceros. Si en el futuro se incorpora publicidad, se mostrará un aviso para pedir tu consentimiento antes de usar cookies publicitarias.</p>
+{% endif %}
+<p>También puedes bloquear o borrar las cookies desde la configuración de tu navegador.</p>
+</article>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% import "macros.html" as mc with context %}
+{% block titulo %}Gasolineras más baratas de {{ p.nombre }} hoy · Diésel {{ res.diesel.minimo|precio }}{% endblock %}
+{% block descripcion %}Precios de hoy en las {{ p.estaciones|length }} gasolineras de {{ p.nombre }}: diésel medio {{ res.diesel.media|precio }} y gasolina 95 {{ res.g95.media|precio }}. La más barata y el ranking por municipios.{% endblock %}
+{% block contenido %}
+{{ mc.migas([(p.nombre, none)]) }}
+<h1>Gasolineras más baratas de {{ p.nombre }}</h1>
+{{ mc.sello() }}
+
+<section class="tarjetas">
+  {% for clave in ["diesel", "g95", "g98", "glp"] %}{% set r = res[clave] %}{% if r.n %}
+  <div class="tarjeta">
+    <span class="tarjeta-titulo">{{ C[clave].nombre }}</span>
+    <span class="tarjeta-precio">{{ r.media|precio }}</span>
+    <span class="tarjeta-detalle">media · desde {{ r.minimo|precio }}</span>
+    {% if nac[clave].media %}{% set dif = r.media - nac[clave].media %}
+    <span class="tarjeta-detalle">{% if dif > 0.0005 %}<span class="sube">{{ dif|centimos }} sobre la media nacional</span>{% elif dif < -0.0005 %}<span class="baja">{{ dif|centimos }} bajo la media nacional</span>{% else %}igual que la media nacional{% endif %}</span>
+    {% endif %}
+  </div>
+  {% endif %}{% endfor %}
+</section>
+
+<div class="dos-columnas">
+  <section class="bloque">
+    <h2>Diésel más barato en {{ p.nombre }}</h2>
+    {{ mc.lista_top(top_d, "diesel") }}
+  </section>
+  <section class="bloque">
+    <h2>Gasolina 95 más barata en {{ p.nombre }}</h2>
+    {{ mc.lista_top(top_g, "g95") }}
+  </section>
+</div>
+
+{% if grafico %}
+<section class="bloque">
+  <h2>Evolución del precio en {{ p.nombre }}</h2>
+  {{ mc.leyenda() }}
+  {{ grafico }}
+</section>
+{% endif %}
+
+<section class="bloque">
+  <h2>Gasolineras por municipio</h2>
+  <p class="nota">Precio más barato de cada municipio. Pulsa en uno para ver todas sus gasolineras.</p>
+  <div class="tabla-envoltura">
+  <table class="tabla ordenable">
+    <thead><tr><th scope="col">Municipio</th><th scope="col" class="num" data-orden="1">Gasolineras</th><th scope="col" class="num" data-orden="2">Diésel desde</th><th scope="col" class="num" data-orden="3">Gasolina 95 desde</th></tr></thead>
+    <tbody>
+    {% for f in municipios %}
+      <tr><td><a href="{{ url(f.m.ruta) }}">{{ f.m.nombre }}</a></td>
+      <td class="num" data-valor="{{ f.n }}">{{ f.n }}</td>
+      <td class="num" data-valor="{{ f.diesel or 99 }}">{{ f.diesel|precio }}</td>
+      <td class="num" data-valor="{{ f.g95 or 99 }}">{{ f.g95|precio }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+{{ mc.faq(faq) }}
+
+<section class="bloque">
+  <h2>Otras provincias</h2>
+  <p class="enlaces-lista">{% for x in otras %}<a href="{{ url(x.ruta) }}">{{ x.nombre }}</a>{% endfor %}</p>
+</section>
+{% endblock %}

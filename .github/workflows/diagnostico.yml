@@ -1,0 +1,17 @@
+name: Diagnostico
+on: workflow_dispatch
+jobs:
+  probar:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -s https://ipinfo.io/json | head -8 || true
+          probar() { echo "== $1"; curl -sS -m 60 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36" -o /tmp/r -w "HTTP %{http_code} %{size_download} bytes %{time_total}s\n" "$1" || true; head -c 200 /tmp/r 2>/dev/null; echo; }
+          probar "https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/"
+          probar "http://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/"
+          probar "https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/Listados/Provincias/"
+          probar "https://geoportalgasolineras.es/geoportal-instalaciones/Inicio"
+          probar "https://geoportalgasolineras.es/"
+          probar "https://datos.gob.es/apidata/catalog/dataset?_pageSize=1"
+          probar "https://www.mapa.gob.es/"
+          probar "https://api.precioil.es/estaciones/radio?latitud=40.4&longitud=-3.7&radio=5"

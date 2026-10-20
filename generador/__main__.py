@@ -47,7 +47,8 @@ def main() -> int:
           f"{len(datos.municipios)} municipios, {len(datos.provincias)} provincias, {len(datos.marcas)} marcas")
 
     carpeta_hist = Path(args.historico)
-    hist = historico.cargar(carpeta_hist)
+    from datetime import timedelta
+    hist = historico.cargar(carpeta_hist, completo_desde=datos.actualizado.date() - timedelta(days=40))
     hist.pop(datos.actualizado.date(), None)  # el día de hoy se calcula con los datos actuales
     snap = historico.instantanea(datos)
     if not args.no_guardar_historico:

@@ -819,6 +819,25 @@ p { text-wrap: pretty; }
   .zona-mapa { height: 60vh; }
 }
 
+/* páginas de precio y estadísticas */
+.tema-cabeza { display: flex; flex-direction: column; gap: 10px; }
+.tema-cabeza .respuesta-precio { margin-top: 2px; }
+.tema-detalle { max-width: 62ch; }
+.tema-acciones { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.tema-acciones .boton-sec { min-height: 48px; display: inline-flex; align-items: center; background: var(--papel); font-weight: 600; }
+.cambios { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: var(--step-ui); }
+.cambios li span { font-weight: 700; }
+.rangos { margin: 4px 0 6px; }
+.leyenda { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 14px; font-size: var(--step-small); color: var(--muted); }
+.leyenda-linea { width: 18px; height: 3px; background: var(--accent); border-radius: 2px; display: inline-block; }
+.leyenda-banda { width: 18px; height: 10px; background: rgba(10, 124, 79, .16); border-radius: 2px; display: inline-block; margin-left: 8px; }
+.evolucion .banda { fill: rgba(10, 124, 79, .14); stroke: none; }
+.estad-cabeza { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px 24px; flex-wrap: wrap; margin-bottom: 10px; }
+.estad-cifra { font-size: var(--step-head); font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+.lista-texto { display: flex; flex-direction: column; gap: 10px; max-width: 72ch; }
+.lista-texto a { text-decoration: underline; text-underline-offset: .2em; }
+.hoy-enlaces { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 14px; }
+
 /* accesos rápidos en el móvil */
 .barra-movil { display: none; }
 @media (max-width: 720px) {

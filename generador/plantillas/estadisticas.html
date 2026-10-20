@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% import "macros.html" as mc with context %}
+{% set MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"] %}
+{% block titulo %}Estadísticas del precio de la gasolina y el diésel en España{% endblock %}
+{% block descripcion %}Evolución del precio medio de los carburantes en España en el último año: diésel, gasolina 95 y 98 y GLP, por meses, por días de la semana y por provincias.{% endblock %}
+{% block contenido %}
+{{ mc.migas([("Estadísticas", none)]) }}
+<div class="titulo">
+  <h1>Estadísticas del precio de los carburantes</h1>
+  <p class="subtitulo">Precio medio en España, con datos oficiales de cada día · {{ mc.frescura() }}</p>
+</div>
+
+{{ mc.selector() }}
+
+{% for c in UI %}{% set f = fichas[c] %}
+<section class="bloque" data-c="{{ c }}" aria-label="{{ f.nombre }}">
+  <div class="estad-cabeza">
+    <div>
+      <h2>{{ f.nombre }}</h2>
+      <p class="estad-cifra">{{ f.r.media|cifra }}</p>
+    </div>
+    {{ mc.cambios(f) }}
+  </div>
+  {{ mc.grafico_rangos(f.graficos) }}
+  {% if f.extremos %}<p class="frase">En los últimos {{ f.extremos.dias }} días: máximo de {{ f.extremos.alto[1]|precio }} ({{ f.extremos.alto[0]|fecha_media }}) y mínimo de {{ f.extremos.bajo[1]|precio }} ({{ f.extremos.bajo[0]|fecha_media }}).</p>{% endif %}
+</section>
+{% endfor %}
+
+{% if meses %}
+<section class="bloque" aria-labelledby="meses-t">
+  <h2 id="meses-t">Precio medio por meses</h2>
+  <div class="tabla-envoltura"><table class="tabla">
+    <thead><tr><th scope="col">Mes</th><th scope="col" class="num">Diésel</th><th scope="col" class="num">Gasolina 95</th></tr></thead>
+    <tbody>{% for m in meses %}<tr><td>{{ MESES[m.mes - 1]|capitalize }} de {{ m.anio }}</td><td class="num">{{ m.diesel|precio }}</td><td class="num">{{ m.g95|precio }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endif %}
+
+<section class="bloque" aria-labelledby="dias-t">
+  <h2 id="dias-t">¿Qué día de la semana es más barato repostar?</h2>
+  {% if dias_semana %}
+  {% set mejor = dias_semana|sort(attribute="dif")|first %}
+  {% set mayor = dias_semana|map(attribute="dif")|map("abs")|max %}
+  {% if mayor < 0.002 %}
+  <p class="frase"><strong>En la práctica, da igual el día.</strong> Comparando cada día con la semana que lo rodea, las diferencias son de centésimas de céntimo (el {{ mejor.dia }} sale apenas un poco más barato). Lo que de verdad ahorra es elegir bien la gasolinera: entre la más cara y la más barata de una misma ciudad suele haber más de 10 céntimos.</p>
+  {% else %}
+  <p class="frase">Comparando cada día con la semana que lo rodea, el <strong>{{ mejor.dia }}</strong> es de media el día con el diésel más barato. Aun así, pesa mucho más elegir bien la gasolinera.</p>
+  {% endif %}
+  <ul class="filas">{% for d in dias_semana %}<li class="fila"><span>{{ d.dia|capitalize }}</span><span class="fila-precio"><span class="{{ 'baja' if d.dif < 0 else 'sube' }}">{{ "%+.2f"|format(d.dif * 100)|replace(".", ",") }} cts</span></span></li>{% endfor %}</ul>
+  <p class="nota">Diferencia media del precio del diésel de cada día frente a la media de su semana.</p>
+  {% else %}
+  <p class="frase">Con unas semanas más de datos diarios verás aquí qué día de la semana suele estar más barato.</p>
+  {% endif %}
+</section>
+
+{% if cambio_prov|length >= 6 %}
+<section class="bloque" aria-labelledby="cprov-t">
+  <h2 id="cprov-t">Cómo ha cambiado el diésel en un año, por provincias</h2>
+  <div class="tabla-envoltura"><table class="tabla">
+    <thead><tr><th scope="col">Provincia</th><th scope="col" class="num">Hoy</th><th scope="col" class="num">Cambio en un año</th></tr></thead>
+    <tbody>{% for x in cambio_prov[:5] + cambio_prov[-5:]|reverse|list %}<tr><td><a href="{{ url(x.p.ruta) }}">{{ x.p.nombre }}</a></td><td class="num">{{ x.media|precio }}</td><td class="num"><span class="{{ 'sube' if x.dif > 0 else 'baja' }}">{{ x.dif|cts }}</span></td></tr>{% endfor %}</tbody>
+  </table></div>
+  <p class="nota">Las cinco provincias donde más ha bajado y las cinco donde más ha subido (Península y Baleares).</p>
+</section>
+{% endif %}
+{% endblock %}

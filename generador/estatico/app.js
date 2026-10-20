@@ -661,6 +661,17 @@
     guardar("rb-lugar", JSON.stringify({ tipo: "mun", url: el.getAttribute("data-url"), nombre: el.getAttribute("data-nombre") }));
   });
 
+  // ---------- gráficos: 1 mes, 3 meses, 6 meses, 1 año ----------
+  $$("[data-rangos]").forEach(function (bloque) {
+    $$("[data-rango]", bloque).forEach(function (b) {
+      b.addEventListener("click", function () {
+        var d = b.getAttribute("data-rango");
+        $$("[data-rango]", bloque).forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+        $$("[data-rango-graf]", bloque).forEach(function (g) { g.hidden = g.getAttribute("data-rango-graf") !== d; });
+      });
+    });
+  });
+
   // ---------- accesos rápidos del móvil ----------
   $$("[data-buscar-rapido]").forEach(function (b) {
     b.addEventListener("click", function () {

@@ -111,11 +111,36 @@
   <div class="temas-fila">
     {% if noticia_hoy %}<a class="tema-hoy" href="{{ url(noticia_hoy.ruta) }}"><span class="tema-etq">Hoy</span>Precio de la gasolina, {{ (noticia_hoy.fecha|fecha_media).rsplit(' de ', 1)[0] }}</a>{% endif %}
     <a href="{{ url('/') }}#buscar">Gasolineras cerca de mí</a>
+    <a href="{{ url('/precio-gasolina/') }}">Precio de la gasolina</a>
+    <a href="{{ url('/precio-diesel/') }}">Precio del diésel</a>
+    <a href="{{ url('/gasolineras-baratas/') }}">Gasolineras baratas</a>
     <a href="{{ url('/ruta/') }}">Gasolineras en tu ruta</a>
     <a href="{{ url('/calculadora/') }}">Calculadora de gasolina</a>
     <a href="{{ url('/') }}#provincias">Precio por provincia</a>
     <a href="{{ url('/marcas/') }}">Marcas más baratas</a>
+    <a href="{{ url('/estadisticas/') }}">Estadísticas</a>
     <a href="{{ url('/noticias/') }}">Noticias</a>
   </div>
 </nav>
+{% endmacro %}
+
+{# Gráfico con botones de periodo (1 mes, 3 meses, 6 meses, 1 año). Se ve el más largo. #}
+{% macro grafico_rangos(graficos) %}
+{% if graficos %}
+<div class="rangos-bloque" data-rangos>
+  {% if graficos|length > 1 %}<div class="chips rangos" role="group" aria-label="Periodo">
+    {% for g in graficos %}<button type="button" class="chip" data-rango="{{ g.dias }}" aria-pressed="{{ 'true' if loop.last else 'false' }}">{{ g.etiqueta }}</button>{% endfor %}
+  </div>{% endif %}
+  {% for g in graficos %}<div data-rango-graf="{{ g.dias }}"{% if not loop.last %} hidden{% endif %}>{{ g.svg }}</div>{% endfor %}
+  <p class="leyenda"><span class="leyenda-linea" aria-hidden="true"></span>precio medio <span class="leyenda-banda" aria-hidden="true"></span>la mitad de las gasolineras está en esta franja</p>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro cambios(f) %}
+<ul class="cambios">
+  {% for x in f.cambios %}
+  <li><span class="{{ 'sube' if x.dif > 0.0005 else 'baja' if x.dif < -0.0005 else '' }}">{% if x.dif > 0.0005 %}▲{% elif x.dif < -0.0005 %}▼{% else %}={% endif %} {{ x.dif|cts }}</span> {{ x.texto }}</li>
+  {% endfor %}
+</ul>
 {% endmacro %}

@@ -98,3 +98,57 @@ def escalera(precios: list[float], media: float | None) -> Markup:
     resumen = (f"{len(precios)} gasolineras entre {_fmt(vmin)} y {_fmt(vmax)} € el litro")
     return Markup(f'<div class="escalera" role="img" aria-label="{escape(resumen)}">'
                   f'<div class="escalera-plot">{svg}</div>{"".join(etiquetas)}</div>')
+
+
+def evolucion_banda(puntos: list[tuple], etiqueta: str = "") -> Markup:
+    """Media diaria con la franja del 50 % central de gasolineras (percentiles 25 a 75).
+    puntos: [(fecha, media, p25 | None, p75 | None)]."""
+    puntos = sorted(p for p in puntos if p[1] is not None)
+    if len(puntos) < 2:
+        return Markup("")
+    banda = [p for p in puntos if p[2] is not None and p[3] is not None]
+    valores = [p[1] for p in puntos] + [p[2] for p in banda] + [p[3] for p in banda]
+    vmin, vmax = min(valores), max(valores)
+    paso = _paso(max(vmax - vmin, 0.004))
+    bajo = math.floor(vmin / paso) * paso
+    alto = math.ceil(vmax / paso) * paso
+    if alto <= vmax:
+        alto += paso
+    if bajo >= vmin:
+        bajo -= paso
+    f0, f1 = puntos[0][0].toordinal(), puntos[-1][0].toordinal()
+    span = max(f1 - f0, 1)
+
+    def x(f) -> float:
+        return (f.toordinal() - f0) / span * 100
+
+    def y(v: float) -> float:
+        return (alto - v) / (alto - bajo) * 100
+
+    svg = ['<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">']
+    etiquetas = []
+    for i in range(round((alto - bajo) / paso) + 1):
+        v = bajo + i * paso
+        svg.append(f'<line class="rejilla" x1="0" x2="100" y1="{y(v):.2f}" y2="{y(v):.2f}"/>')
+        etiquetas.append(f'<span class="eje-y" style="top:{y(v):.2f}%">{_fmt(v, 3 if paso < 0.01 else 2)}</span>')
+    if len(banda) >= 2:
+        arriba = " ".join(f"{x(f):.2f},{y(p75):.2f}" for f, _, _, p75 in banda)
+        abajo = " ".join(f"{x(f):.2f},{y(p25):.2f}" for f, _, p25, _ in reversed(banda))
+        svg.append(f'<polygon class="banda" points="{arriba} {abajo}"/>')
+    pts = " ".join(f"{x(f):.2f},{y(v):.2f}" for f, v, _, _ in puntos)
+    svg.append(f'<polyline class="linea" points="{pts}"/>')
+    svg.append("</svg>")
+    n = len(puntos)
+    indices = sorted({round(i * (n - 1) / 4) for i in range(5)}) if n > 5 else list(range(n))
+    largo = span > 120
+    for i in indices:
+        f = puntos[i][0]
+        borde = " primero" if i == indices[0] else (" ultimo" if i == indices[-1] else "")
+        texto = f"{fecha_corta(f)} {str(f.year)[2:]}" if largo else fecha_corta(f)
+        etiquetas.append(f'<span class="eje-x{borde}" style="left:{x(f):.2f}%">{texto}</span>')
+    fu, vu = puntos[-1][0], puntos[-1][1]
+    etiquetas.append(f'<span class="punto-hoy" style="left:{x(fu):.2f}%;top:{y(vu):.2f}%"></span>')
+    resumen = (f"{etiqueta}: de {_fmt(puntos[0][1])} € el {fecha_corta(puntos[0][0])} a {_fmt(vu)} € el "
+               f"{fecha_corta(fu)}")
+    return Markup(f'<figure class="evolucion"><div class="evolucion-plot" role="img" aria-label="{escape(resumen)}">'
+                  + "".join(svg) + "".join(etiquetas) + "</div></figure>")

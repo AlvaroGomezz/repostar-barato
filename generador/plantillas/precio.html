@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% import "macros.html" as mc with context %}
+{% set r = f.r %}
+{% set gasolina = f.c == "g95" %}
+{% set el = "la" if gasolina else "el" %}
+{% set nombre = "gasolina" if gasolina else "diésel" %}
+{% block titulo %}Precio {{ "de la gasolina" if gasolina else "del diésel" }} hoy en España: evolución y dónde está más {{ "barata" if gasolina else "barato" }}{% endblock %}
+{% block descripcion %}Cuánto cuesta hoy el litro de {{ f.largo }} en España, cómo ha cambiado en el último año y las gasolineras, ciudades y provincias donde está más {{ "barata" if gasolina else "barato" }}.{% endblock %}
+{% block contenido %}
+{{ mc.migas([("Precio " ~ ("de la gasolina" if gasolina else "del diésel"), none)]) }}
+<div class="titulo">
+  <h1>Precio {{ "de la gasolina" if gasolina else "del diésel" }} hoy</h1>
+  <p class="subtitulo">{{ actualizado|fecha_larga|capitalize }} · {{ mc.frescura() }}</p>
+</div>
+
+<section class="panel tema-cabeza" aria-label="Precio de hoy">
+  <p class="respuesta-etiqueta">Precio medio de {{ f.largo }} en España</p>
+  <p class="respuesta-precio">{{ r.media|cifra }}</p>
+  {{ mc.cambios(f) }}
+  <p class="tema-detalle">Entre {{ r.minimo|precio }} y {{ r.maximo|precio }} el litro en las {{ r.n|numero(0) }} gasolineras que lo venden. Llenar {{ deposito }} litros cuesta de media {{ (r.media * deposito)|precio(2) }}.</p>
+  <div class="tema-acciones">
+    <a class="boton" href="{{ url('/') }}?cerca=1#buscar">{{ "La más barata" if gasolina else "El más barato" }} cerca de mí</a>
+    <a class="boton-sec" href="{{ url('/calculadora/') }}">Calcular un viaje</a>
+  </div>
+</section>
+
+{% if f.graficos %}
+<section class="bloque" aria-labelledby="evol-t">
+  <h2 id="evol-t">Evolución del precio {{ "de la gasolina 95" if gasolina else "del diésel" }}</h2>
+  {{ mc.grafico_rangos(f.graficos) }}
+  {% if f.extremos %}<p class="frase">En los últimos {{ f.extremos.dias }} días, lo más caro fue {{ f.extremos.alto[1]|precio }} el {{ f.extremos.alto[0]|fecha_media }} y lo más barato, {{ f.extremos.bajo[1]|precio }} el {{ f.extremos.bajo[0]|fecha_media }}. <a href="{{ url('/estadisticas/') }}">Más estadísticas</a>.</p>{% endif %}
+</section>
+{% endif %}
+
+<section class="bloque" aria-labelledby="top-t">
+  <h2 id="top-t">Las 10 gasolineras con {{ el }} {{ nombre }} más {{ "barata" if gasolina else "barato" }} de la Península</h2>
+  <div class="tabla-envoltura"><table class="tabla">
+    <thead><tr><th scope="col">Gasolinera</th><th scope="col">Municipio</th><th scope="col">Provincia</th><th scope="col" class="num">Precio</th></tr></thead>
+    <tbody>{% for e in top %}<tr><td><span translate="no">{{ e.rotulo }}</span><span class="celda-sub">{{ e.direccion }}</span></td><td><a href="{{ url(e.municipio.ruta) }}">{{ e.municipio.nombre }}</a></td><td>{{ e.municipio.provincia.nombre }}</td><td class="num">{{ e.precios[f.c]|precio }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <p class="nota">Canarias, Ceuta y Melilla tienen otros impuestos y precios más bajos: se cuentan aparte.</p>
+</section>
+
+<section class="bloque" aria-labelledby="ciu-t">
+  <h2 id="ciu-t">Precio {{ "de la gasolina" if gasolina else "del diésel" }} en las grandes ciudades</h2>
+  <div class="tabla-envoltura"><table class="tabla">
+    <thead><tr><th scope="col">Ciudad</th><th scope="col" class="num">Media</th><th scope="col">{{ "La más barata" if gasolina else "El más barato" }}</th><th scope="col" class="num">Precio</th></tr></thead>
+    <tbody>{% for x in ciudades %}<tr><td><a href="{{ url(x.m.ruta) }}">{{ x.m.nombre }}</a></td><td class="num">{{ x.r.media|precio }}</td><td>{% if x.barata %}<span translate="no">{{ x.barata.rotulo }}</span>{% endif %}</td><td class="num">{% if x.barata %}{{ x.barata.precios[f.c]|precio }}{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+
+<section class="bloque" aria-labelledby="prov-t">
+  <h2 id="prov-t">Precio {{ "de la gasolina" if gasolina else "del diésel" }} por provincias</h2>
+  <div class="tabla-envoltura"><table class="tabla">
+    <thead><tr><th scope="col">Provincia</th><th scope="col" class="num">Media hoy</th><th scope="col" class="num">En una semana</th><th scope="col" class="num">{{ "La más barata" if gasolina else "El más barato" }}</th></tr></thead>
+    <tbody>{% for x in provincias %}<tr><td><a href="{{ url(x.p.ruta) }}">{{ x.p.nombre }}</a>{% if x.especial %}<span class="celda-sub">otros impuestos</span>{% endif %}</td><td class="num">{{ x.media|precio }}</td><td class="num">{% if x.dif7 is not none %}<span class="{{ 'sube' if x.dif7 > 0.0005 else 'baja' if x.dif7 < -0.0005 else '' }}">{{ x.dif7|cts }}</span>{% else %}—{% endif %}</td><td class="num">{% if x.barata %}{{ x.barata.precios[f.c]|precio }}{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+
+{% if otro and otro.media %}
+<section class="bloque" aria-labelledby="otro-t">
+  <h2 id="otro-t">{{ C[otro_c].nombre }}</h2>
+  <p class="frase">El precio medio {{ "de la gasolina 98" if gasolina else "del diésel premium" }} es hoy de {{ otro.media|precio }} el litro, {{ ((otro.media - r.media) * 100)|round(1)|string|replace(".", ",") }} céntimos más que {{ "la gasolina 95" if gasolina else "el diésel normal" }}.</p>
+</section>
+{% endif %}
+
+{{ mc.faq([
+  ("¿Cuánto cuesta hoy el litro de " ~ nombre ~ "?", "El precio medio " ~ ("de la gasolina 95" if gasolina else "del diésel") ~ " en España es hoy de " ~ (r.media|precio) ~ " el litro, con precios entre " ~ (r.minimo|precio) ~ " y " ~ (r.maximo|precio) ~ " según la gasolinera. Son datos oficiales del Ministerio para la Transición Ecológica, actualizados a las " ~ (actualizado|hora) ~ "."),
+  ("¿Por qué cambia tanto el precio entre gasolineras?", "Cada gasolinera fija su precio. Las de supermercado y las automáticas suelen ser las más baratas, y las de autovía y autopista, las más caras. En una misma ciudad la diferencia supera a menudo los 10 céntimos por litro."),
+  ("¿Dónde está " ~ el ~ " " ~ nombre ~ " más " ~ ("barata" if gasolina else "barato") ~ "?", "En la Península, hoy en " ~ (top[0].rotulo if top else "—") ~ " (" ~ (top[0].municipio.nombre if top else "") ~ ", " ~ (top[0].municipio.provincia.nombre if top else "") ~ "). Canarias, Ceuta y Melilla tienen impuestos más bajos y precios menores. Para encontrar la más barata cerca de ti, usa el buscador de la portada."),
+  ("¿Cuánto cuesta llenar el depósito?", "Con el precio medio de hoy, llenar 50 litros de " ~ nombre ~ " cuesta " ~ ((r.media * 50)|precio(2)) ~ ". En la gasolinera más barata de tu zona puede costar varios euros menos."),
+]) }}
+{% endblock %}

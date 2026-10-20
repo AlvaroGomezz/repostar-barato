@@ -126,6 +126,16 @@ class Datos:
 
 # ---------- descarga ----------
 
+def descargar_con_curl(url: str, tiempo: int = 180) -> dict:
+    """El servidor del Ministerio corta a veces el saludo TLS de Python; con curl responde con normalidad."""
+    import subprocess
+    salida = subprocess.run(
+        ["curl", "-s", "-f", "--compressed", "-m", str(tiempo), "-H", "Accept: application/json", "-A",
+         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36", url],
+        capture_output=True, check=True, timeout=tiempo + 30)
+    return json.loads(salida.stdout.decode("utf-8"))
+
+
 def descargar(intentos: int = 5) -> dict:
     ultimo_error = None
     for i in range(intentos):
@@ -145,6 +155,12 @@ def descargar(intentos: int = 5) -> dict:
             return datos
         except Exception as e:  # noqa: BLE001 - reintentar cualquier fallo de red
             ultimo_error = e
+            try:  # segundo intento con curl
+                datos = descargar_con_curl(API_URL)
+                if datos.get("ResultadoConsulta") == "OK" and len(datos.get("ListaEESSPrecio", [])) >= 5000:
+                    return datos
+            except Exception as e2:  # noqa: BLE001
+                ultimo_error = f"{e} / curl: {e2}"
             if i + 1 < intentos:
                 time.sleep(15 * (i + 1))
     raise RuntimeError(f"No se pudo descargar la API del Ministerio: {ultimo_error}")
@@ -175,7 +191,7 @@ def _precios(fila: dict) -> dict[str, float]:
     return precios
 
 
-def interpretar(bruto: dict) -> Datos:
+def interpretar(bruto: dict, cercanas: bool = True) -> Datos:
     actualizado = datetime.strptime(bruto["Fecha"], "%d/%m/%Y %H:%M:%S").replace(tzinfo=ZONA)
     provincias: dict[str, Provincia] = {}
     municipios: dict[str, Municipio] = {}
@@ -228,7 +244,8 @@ def interpretar(bruto: dict) -> Datos:
             m.lat = statistics.fmean(c[0] for c in coords)
             m.lon = statistics.fmean(c[1] for c in coords)
 
-    _calcular_cercanas(list(municipios.values()), estaciones)
+    if cercanas:
+        _calcular_cercanas(list(municipios.values()), estaciones)
 
     return Datos(
         actualizado=actualizado,

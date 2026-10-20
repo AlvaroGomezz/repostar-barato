@@ -10,9 +10,10 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markupsafe import Markup
 
 from . import articulos, graficos, imagenes, marca, tendencia
-from .config import COMBUSTIBLES, FISCALIDAD_ESPECIAL, POR_CLAVE, RAIZ, Sitio, con_articulo
+from . import historico as historico_mod
+from .config import COMBUSTIBLES, FISCALIDAD_ESPECIAL, LANZAMIENTO, POR_CLAVE, RAIZ, Sitio, con_articulo
 from .datos import Datos, Estacion, Municipio, Provincia, mas_baratas, resumen
-from .texto import (capitalizar, centimos, fecha_corta, fecha_larga, fecha_media, hora, numero,
+from .texto import (DIAS as DIAS_SEMANA, capitalizar, centimos, fecha_corta, fecha_larga, fecha_media, hora, numero,
                     precio, slug)
 
 PLANTILLAS = RAIZ / "generador" / "plantillas"
@@ -102,10 +103,10 @@ class Web:
         destino.parent.mkdir(parents=True, exist_ok=True)
         destino.write_text(contenido, encoding="utf-8")
 
-    def serie(self, extraer, hoy_valor: float | None) -> list[tuple[date, float]]:
-        """Serie de los últimos 30 días a partir del histórico, con el valor actual para hoy."""
+    def serie(self, extraer, hoy_valor: float | None, dias: int = 30) -> list[tuple[date, float]]:
+        """Serie de los últimos días a partir del histórico, con el valor actual para hoy."""
         puntos = {}
-        desde = self.hoy - timedelta(days=30)
+        desde = self.hoy - timedelta(days=dias)
         for f, snap in self.historico.items():
             if f >= desde:
                 v = extraer(snap)
@@ -160,7 +161,7 @@ class Web:
 
         historico_completo = dict(self.historico)
         historico_completo[self.hoy] = articulo_hoy_snap
-        noticias = [a for f, s in sorted(historico_completo.items(), reverse=True)
+        noticias = [a for f, s in sorted(historico_completo.items(), reverse=True) if f >= LANZAMIENTO
                     for a in articulos.escribir_dia(s, historico_completo, self.url)]
         self.env.globals["noticia_hoy"] = noticias[0] if noticias else None
         try:
@@ -174,6 +175,7 @@ class Web:
         self.inicio(noticias)
         self.calculadora()
         self.ruta()
+        self.paginas_tema()
         for p in self.d.provincias:
             self.provincia(p)
         for m in self.d.municipios:
@@ -247,6 +249,138 @@ class Web:
             imagenes.portada_con_foto(destino / "provincias" / f"{p.slug}.jpg", f"Precio de la gasolina en {p.nombre}",
                                       f"Gasolineras más baratas en {p.nombre} hoy", filas,
                                       imagenes.foto_para(int(p.id)), etiqueta=etiqueta(self.hoy))
+
+    # ---------- páginas fijas para las búsquedas grandes ----------
+
+    RANGOS = [(30, "1 mes"), (90, "3 meses"), (180, "6 meses"), (365, "1 año")]
+
+    def serie_nac(self, c: str, dias: int = 365) -> list[tuple]:
+        """[(fecha, media, p25, p75)] de España, del histórico y de hoy."""
+        pts = {}
+        desde = self.hoy - timedelta(days=dias)
+        for f, s in self.historico.items():
+            n = s.get("nac", {}).get(c)
+            if f >= desde and n and n.get("media"):
+                pts[f] = (f, n["media"], n.get("p25"), n.get("p75"))
+        if self.nac[c].media:
+            p25, p75 = historico_mod._cuartiles(self.d.estaciones, c)
+            pts[self.hoy] = (self.hoy, self.nac[c].media, p25, p75)
+        return [pts[k] for k in sorted(pts)]
+
+    @staticmethod
+    def _hace(serie: list[tuple], hoy: date, dias: int):
+        """El valor más reciente de hace al menos `dias` días (si el histórico llega)."""
+        objetivo = hoy - timedelta(days=dias)
+        previos = [p for p in serie if p[0] <= objetivo]
+        if not previos or (objetivo - previos[-1][0]).days > 3:
+            return None
+        return previos[-1]
+
+    def graficos_rango(self, serie: list[tuple], nombre: str) -> list[dict]:
+        salida = []
+        for dias, etiqueta in self.RANGOS:
+            sub = [p for p in serie if p[0] >= self.hoy - timedelta(days=dias)]
+            if len(sub) < 2 or (dias > 30 and (sub[-1][0] - sub[0][0]).days < dias * 0.6):
+                continue
+            salida.append({"dias": dias, "etiqueta": etiqueta, "svg": graficos.evolucion_banda(sub, nombre)})
+        return salida
+
+    def ficha_combustible(self, c: str) -> dict:
+        serie = self.serie_nac(c)
+        hoy = serie[-1] if serie else None
+        cambios = []
+        for dias, texto in ((1, "desde ayer"), (7, "en una semana"), (30, "en un mes"), (365, "en un año")):
+            p = self._hace(serie, self.hoy, dias)
+            if hoy and p:
+                cambios.append({"texto": texto, "dif": hoy[1] - p[1], "antes": p[1], "fecha": p[0]})
+        valores = [p[1] for p in serie]
+        extremos = None
+        if len(serie) >= 30:
+            alto = max(serie, key=lambda p: p[1])
+            bajo = min(serie, key=lambda p: p[1])
+            extremos = {"alto": alto, "bajo": bajo, "dias": (serie[-1][0] - serie[0][0]).days}
+        return {"c": c, "nombre": POR_CLAVE[c].nombre, "largo": POR_CLAVE[c].nombre_largo, "r": self.nac[c],
+                "hoy": hoy, "cambios": cambios, "graficos": self.graficos_rango(serie, POR_CLAVE[c].nombre),
+                "extremos": extremos, "n_dias": len(valores)}
+
+    def provincias_tabla(self, c: str) -> list[dict]:
+        antes = self.historico.get(self.hoy - timedelta(days=7)) or {}
+        filas = []
+        for p in self.d.provincias:
+            r = resumen(p.estaciones, c)
+            if not r.media:
+                continue
+            q = antes.get("prov", {}).get(p.id, {}).get(c)
+            barata = (mas_baratas(p.estaciones, c, 1) or [None])[0]
+            filas.append({"p": p, "media": r.media, "dif7": (r.media - q[0]) if q else None, "barata": barata,
+                          "especial": p.id in FISCALIDAD_ESPECIAL})
+        return sorted(filas, key=lambda x: x["media"])
+
+    def grandes_ciudades(self, n: int = 12) -> list:
+        ciudades, vistas = [], set()
+        for m in sorted(self.d.municipios, key=lambda m: -len(m.estaciones)):
+            if m.provincia.id in vistas:
+                continue
+            vistas.add(m.provincia.id)
+            ciudades.append(m)
+            if len(ciudades) == n:
+                break
+        return ciudades
+
+    def paginas_tema(self):
+        peninsula = [e for e in self.d.estaciones if e.provincia_id not in FISCALIDAD_ESPECIAL]
+        ciudades = self.grandes_ciudades()
+        # Precio de la gasolina y precio del diésel.
+        for c, otro, ruta in (("g95", "g98", "/precio-gasolina/"), ("diesel", "dieselp", "/precio-diesel/")):
+            ficha = self.ficha_combustible(c)
+            filas_c = [{"m": m, "r": resumen(m.estaciones, c), "barata": (mas_baratas(m.estaciones, c, 1) or [None])[0]}
+                       for m in ciudades]
+            self.escribir(ruta, "precio.html", prioridad="0.9", f=ficha, otro=self.nac.get(otro), otro_c=otro,
+                          provincias=self.provincias_tabla(c), top=mas_baratas(peninsula, c, 10),
+                          ciudades=[x for x in filas_c if x["r"].media], og_imagen="/imagenes/portada.jpg")
+        # Gasolineras baratas: las más baratas de España y de cada provincia, por combustible.
+        por_prov = {c: [x for x in self.provincias_tabla(c) if x["barata"]] for c in UI}
+        marcas = {}
+        for c in UI:
+            filas = []
+            for marca in self.d.marcas:
+                r = resumen([e for e in marca.estaciones if e.provincia_id not in FISCALIDAD_ESPECIAL], c)
+                if r.n >= 30:
+                    filas.append({"marca": marca, "media": r.media})
+            marcas[c] = sorted(filas, key=lambda x: x["media"])[:8]
+        self.escribir("/gasolineras-baratas/", "baratas.html", prioridad="0.9",
+                      top={c: mas_baratas(peninsula, c, 20) for c in UI}, por_prov=por_prov, marcas=marcas,
+                      og_imagen="/imagenes/portada.jpg")
+        # Estadísticas: todos los combustibles, meses, días de la semana y provincias que más cambian.
+        fichas = {c: self.ficha_combustible(c) for c in UI}
+        meses = {}
+        for c in ("diesel", "g95"):
+            for f, v, _, _ in self.serie_nac(c):
+                meses.setdefault((f.year, f.month), {}).setdefault(c, []).append(v)
+        tabla_meses = [{"anio": a, "mes": m, "diesel": statistics.fmean(d["diesel"]) if d.get("diesel") else None,
+                        "g95": statistics.fmean(d["g95"]) if d.get("g95") else None}
+                       for (a, m), d in sorted(meses.items(), reverse=True)]
+        dias_semana = None
+        serie_d = self.serie_nac("diesel")
+        if len(serie_d) >= 56:
+            valores = {p[0]: p[1] for p in serie_d}
+            desv: dict[int, list[float]] = {}
+            for f, v in valores.items():
+                vecinos = [valores[f + timedelta(days=k)] for k in range(-3, 4) if f + timedelta(days=k) in valores]
+                if len(vecinos) == 7:
+                    desv.setdefault(f.weekday(), []).append(v - statistics.fmean(vecinos))
+            if len(desv) == 7:
+                dias_semana = [{"dia": DIAS_SEMANA[d], "dif": statistics.fmean(x)} for d, x in sorted(desv.items())]
+        anio = self.historico.get(self.hoy - timedelta(days=365)) or {}
+        cambio_prov = []
+        for p in self.d.provincias:
+            r = resumen(p.estaciones, "diesel")
+            q = anio.get("prov", {}).get(p.id, {}).get("diesel")
+            if r.media and q and p.id not in FISCALIDAD_ESPECIAL:
+                cambio_prov.append({"p": p, "media": r.media, "dif": r.media - q[0]})
+        cambio_prov.sort(key=lambda x: x["dif"])
+        self.escribir("/estadisticas/", "estadisticas.html", prioridad="0.8", fichas=fichas, meses=tabla_meses,
+                      dias_semana=dias_semana, cambio_prov=cambio_prov, og_imagen="/imagenes/portada.jpg")
 
     def ruta(self):
         self.escribir("/ruta/", "ruta.html", prioridad="0.8", og_imagen="/imagenes/ruta.jpg")

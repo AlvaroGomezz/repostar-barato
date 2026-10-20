@@ -145,6 +145,7 @@
     </div>
     {% endfor %}
   </div>
+  <p class="hoy-enlaces"><a class="enlace-flecha" href="{{ url('/precio-gasolina/') }}">Evolución de la gasolina</a><a class="enlace-flecha" href="{{ url('/precio-diesel/') }}">Evolución del diésel</a><a class="enlace-flecha" href="{{ url('/estadisticas/') }}">Estadísticas</a></p>
   {% for c in UI %}{% set e = mejor[c] %}
   {% if e %}<p class="hoy-dato" data-c="{{ c }}">La más barata de la Península: <b translate="no">{{ e.rotulo }}</b>, en <a href="{{ url(e.municipio.ruta) }}">{{ e.municipio.nombre }}</a> ({{ e.municipio.provincia.nombre }}), a {{ e.precios[c]|precio }} el litro de {{ C[c].nombre_largo }}.</p>{% endif %}
   {% endfor %}

@@ -1,6 +1,7 @@
 """Ajustes del sitio, leídos de sitio.toml (y SITE_URL del entorno para previsualizar en local)."""
 import os
 import tomllib
+from datetime import date
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
@@ -42,6 +43,9 @@ def con_articulo(clave: str, adjetivo: str = "") -> str:
         texto += f" más {adjetivo}{'a' if fem else 'o'}"
     return texto
 PRINCIPALES = ["diesel", "g95"]
+
+# Día en que empezaron a publicarse noticias (el histórico anterior se usa solo para gráficos).
+LANZAMIENTO = date(2026, 10, 20)
 
 # Canarias, Ceuta y Melilla tienen impuestos distintos: se separan en los rankings.
 FISCALIDAD_ESPECIAL = {"35", "38", "51", "52"}

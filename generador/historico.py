@@ -8,6 +8,14 @@ from .config import COMBUSTIBLES, FISCALIDAD_ESPECIAL, PRINCIPALES
 from .datos import Datos, Estacion, mas_baratas, resumen
 
 
+def _cuartiles(estaciones, clave):
+    v = sorted(e.precios[clave] for e in estaciones if clave in e.precios)
+    if len(v) < 4:
+        return None, None
+    q = lambda p: v[min(len(v) - 1, max(0, round(p * (len(v) - 1))))]  # noqa: E731
+    return q(0.25), q(0.75)
+
+
 def _ficha(e: Estacion, comb: str) -> dict:
     return {
         "id": e.id, "rotulo": e.rotulo, "dir": e.direccion,
@@ -27,10 +35,12 @@ def instantanea(datos: Datos) -> dict:
     for c in COMBUSTIBLES:
         r = resumen(datos.estaciones, c.clave)
         if r.n:
-            snap["nac"][c.clave] = {"media": r.media, "min": r.minimo, "max": r.maximo, "n": r.n}
+            p25, p75 = _cuartiles(datos.estaciones, c.clave)
+            snap["nac"][c.clave] = {"media": r.media, "min": r.minimo, "max": r.maximo, "n": r.n, "p25": p25, "p75": p75}
         rp = resumen(peninsula, c.clave)
         if rp.n:
-            snap["pen"][c.clave] = {"media": rp.media, "min": rp.minimo, "max": rp.maximo, "n": rp.n}
+            p25, p75 = _cuartiles(peninsula, c.clave)
+            snap["pen"][c.clave] = {"media": rp.media, "min": rp.minimo, "max": rp.maximo, "n": rp.n, "p25": p25, "p75": p75}
     for p in datos.provincias:
         fila = {"nombre": p.nombre, "slug": p.slug}
         for c in COMBUSTIBLES:
@@ -88,14 +98,21 @@ def guardar(snap: dict, carpeta: Path, ahora: datetime) -> bool:
     return True
 
 
-def cargar(carpeta: Path) -> dict[date, dict]:
+LIGERO = ("fecha", "actualizado", "nac", "pen", "prov")
+
+
+def cargar(carpeta: Path, completo_desde: date | None = None) -> dict[date, dict]:
+    """Los días anteriores a completo_desde se cargan solo con las medias (lo que usan los gráficos)."""
     historico = {}
     if not carpeta.exists():
         return historico
     for ruta in sorted(carpeta.glob("*.json.gz")):
         try:
             snap = json.loads(gzip.decompress(ruta.read_bytes()).decode("utf-8"))
-            historico[date.fromisoformat(snap["fecha"])] = snap
+            f = date.fromisoformat(snap["fecha"])
+            if completo_desde and f < completo_desde:
+                snap = {k: snap[k] for k in LIGERO if k in snap}
+            historico[f] = snap
         except (OSError, ValueError, KeyError):
             continue
     return historico

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% import "macros.html" as mc with context %}
+{% block titulo %}Gasolineras baratas hoy: las más baratas de España y de cada provincia{% endblock %}
+{% block descripcion %}Las gasolineras más baratas de España hoy para diésel, gasolina 95, gasolina 98 y GLP, la más barata de cada provincia y las marcas con mejores precios, con datos oficiales.{% endblock %}
+{% block contenido %}
+{{ mc.migas([("Gasolineras baratas", none)]) }}
+<div class="titulo">
+  <h1>Gasolineras baratas hoy</h1>
+  <p class="subtitulo">Las más baratas de España y de cada provincia · {{ mc.frescura() }}</p>
+</div>
+
+{{ mc.selector() }}
+
+<section class="panel tema-cabeza" aria-label="Cerca de ti">
+  <p class="respuesta-etiqueta">¿Buscas la más barata cerca de ti?</p>
+  <p class="tema-detalle">Con tu ubicación te enseñamos las gasolineras más baratas a tu alrededor, si están abiertas ahora y cómo llegar.</p>
+  <div class="tema-acciones">
+    <a class="boton" href="{{ url('/') }}?cerca=1#buscar">Buscar cerca de mí</a>
+    <a class="boton-sec" href="{{ url('/ruta/') }}">Las más baratas en mi ruta</a>
+  </div>
+</section>
+
+<section class="bloque" aria-labelledby="top-t">
+  <h2 id="top-t">Las 20 gasolineras más baratas de la Península</h2>
+  {% for c in UI %}
+  <div data-c="{{ c }}">
+    <div class="tabla-envoltura"><table class="tabla">
+      <thead><tr><th scope="col">Gasolinera</th><th scope="col">Municipio</th><th scope="col">Provincia</th><th scope="col" class="num">{{ C[c].nombre }}</th></tr></thead>
+      <tbody>{% for e in top[c] %}<tr><td><span translate="no">{{ e.rotulo }}</span><span class="celda-sub">{{ e.direccion }}{% if e.abierta_24h %} · 24 h{% endif %}</span></td><td><a href="{{ url(e.municipio.ruta) }}">{{ e.municipio.nombre }}</a></td><td>{{ e.municipio.provincia.nombre }}</td><td class="num">{{ e.precios[c]|precio }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% endfor %}
+  <p class="nota">Sin Canarias, Ceuta y Melilla, que tienen otros impuestos.</p>
+</section>
+
+<section class="bloque" aria-labelledby="prov-t">
+  <h2 id="prov-t">La gasolinera más barata de cada provincia</h2>
+  {% for c in UI %}
+  <div data-c="{{ c }}">
+    <div class="tabla-envoltura"><table class="tabla">
+      <thead><tr><th scope="col">Provincia</th><th scope="col">Gasolinera</th><th scope="col">Municipio</th><th scope="col" class="num">Precio</th></tr></thead>
+      <tbody>{% for x in por_prov[c]|sort(attribute="p.nombre") %}{% set e = x.barata %}<tr><td><a href="{{ url(x.p.ruta) }}">{{ x.p.nombre }}</a></td><td><span translate="no">{{ e.rotulo }}</span><span class="celda-sub">{{ e.direccion }}</span></td><td><a href="{{ url(e.municipio.ruta) }}">{{ e.municipio.nombre }}</a></td><td class="num">{{ e.precios[c]|precio }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% endfor %}
+</section>
+
+<section class="bloque" aria-labelledby="marcas-t">
+  <h2 id="marcas-t">Las marcas más baratas</h2>
+  {% for c in UI %}
+  <div data-c="{{ c }}">
+    <ul class="filas">
+      {% for x in marcas[c] %}<li class="fila"><a href="{{ url(x.marca.ruta) }}"><strong translate="no">{{ x.marca.nombre }}</strong></a><span class="fila-precio">{{ x.media|cifra }}</span></li>{% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+  <p class="nota">Precio medio en la Península de las cadenas con al menos 30 gasolineras. <a href="{{ url('/marcas/') }}">Todas las marcas</a>.</p>
+</section>
+
+<section class="bloque" aria-labelledby="trucos-t">
+  <h2 id="trucos-t">Cómo pagar menos al repostar</h2>
+  <ul class="lista-texto">
+    <li><strong>Compara en tu zona.</strong> Entre la más cara y la más barata de una misma ciudad suele haber más de 10 céntimos por litro: 5 € o más por depósito.</li>
+    <li><strong>Evita las autovías.</strong> Las áreas de servicio suelen ser más caras que las gasolineras del pueblo más cercano a la salida. <a href="{{ url('/ruta/') }}">Planifica dónde parar</a>.</li>
+    <li><strong>Mira las automáticas y las de supermercado.</strong> Suelen tener los precios más bajos.</li>
+    <li><strong>Fíjate en la tendencia.</strong> Si el precio está subiendo, reposta antes. Lo verás en <a href="{{ url('/estadisticas/') }}">las estadísticas</a> y en las noticias de cada día.</li>
+  </ul>
+</section>
+
+{{ mc.faq([
+  ("¿Cuál es la gasolinera más barata de España hoy?", "En la Península, la más barata en diésel es " ~ (top.diesel[0].rotulo if top.diesel else "—") ~ " en " ~ (top.diesel[0].municipio.nombre if top.diesel else "") ~ " (" ~ (top.diesel[0].precios.diesel|precio if top.diesel else "") ~ "), y en gasolina 95, " ~ (top.g95[0].rotulo if top.g95 else "—") ~ " en " ~ (top.g95[0].municipio.nombre if top.g95 else "") ~ " (" ~ (top.g95[0].precios.g95|precio if top.g95 else "") ~ ")."),
+  ("¿Qué marca de gasolinera es más barata?", "Por precio medio del diésel en la Península, hoy la más barata es " ~ (marcas.diesel[0].marca.nombre if marcas.diesel else "—") ~ ". Aun así, dentro de cada marca los precios cambian mucho de una gasolinera a otra."),
+  ("¿Cómo encuentro la gasolinera más barata cerca de mí?", "Pulsa «Buscar cerca de mí» en la portada de " ~ sitio.nombre ~ ": con tu ubicación te enseñamos las más baratas a tu alrededor, si están abiertas y cómo llegar."),
+]) }}
+{% endblock %}

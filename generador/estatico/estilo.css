@@ -1,4 +1,4 @@
-/* Repostar Barato
+/* GASVIA (gas + vía)
    Idea: lo primero, tus gasolineras. La portada se abre con tu zona (ubicación o ciudad) y la lista de
    las más baratas, con la distancia, el ahorro y cómo llegar.
    Paleta: fondo claro cálido, amarillo de cartel de carretera para la marca, tinta negra y verde para el
@@ -8,9 +8,9 @@
   --bg: #f3f2ef;
   --surface: #ece9e2;
   --papel: #ffffff;
-  --ink: #141414;
+  --ink: #17191b;
   --muted: #59554d;
-  --amarillo: #ffd43b;
+  --amarillo: #ffcf32;
   --amarillo-claro: #fff6d1;
   --sobre-amarillo: #4d4430;   /* texto secundario sobre amarillo */
   --accent: #0a7c4f;           /* verde: ahorro y "cómo llegar" */
@@ -162,6 +162,7 @@ p { text-wrap: pretty; }
 .cabeza { background: var(--amarillo); }
 .cabeza-marco { max-width: var(--ancho); margin: 0 auto; padding: 0 var(--margin) clamp(40px, 5vw, 72px); }
 .cabeza-barra { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 80px; }
+.logo { display: block; height: 30px; width: auto; flex: none; }
 .cabeza-logo { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: var(--step-body); min-height: 44px; letter-spacing: -0.01em; }
 .cabeza-nav { display: flex; gap: 26px; font-size: var(--step-ui); font-weight: 500; }
 .cabeza-nav a { min-height: 44px; display: inline-flex; align-items: center; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: .25em; transition: text-decoration-color var(--t-hover) ease; }
@@ -335,7 +336,7 @@ p { text-wrap: pretty; }
 .t-pequena { font-size: var(--step-small); color: var(--muted); }
 .t-media { font-size: var(--step-lead); line-height: 1.2; letter-spacing: -0.015em; font-weight: 600; }
 .t-marca { grid-column: 1 / 9; min-height: 260px; background: var(--amarillo); align-items: center; justify-content: center; overflow: hidden; }
-.t-marca span { font-size: clamp(2.75rem, 6.4vw, 6.5rem); font-weight: 700; letter-spacing: -0.05em; line-height: 1; white-space: nowrap; }
+.t-marca .logo { width: min(78%, 560px); height: auto; }
 .t-accion { grid-column: 9 / 13; min-height: 260px; background: var(--accent); color: var(--accent-ink); transition: background-color var(--t-hover) ease; }
 .t-accion:hover { background: var(--accent-hover); }
 .t-accion .t-media { max-width: 12ch; }
@@ -614,7 +615,7 @@ p { text-wrap: pretty; }
   .teselas { grid-template-columns: 1fr 1fr; gap: 6px; }
   .tesela { padding: 20px; min-height: 0; }
   .t-marca { grid-column: 1 / -1; order: -2; min-height: 140px; }
-  .t-marca span { font-size: 11vw; }
+  .t-marca .logo { width: 82%; }
   .t-accion { grid-column: 1 / -1; order: -1; min-height: 110px; }
   .t-nav, .t-noticia { grid-column: span 1; }
   .t-frase { grid-column: 1 / -1; }

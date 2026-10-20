@@ -58,7 +58,7 @@ class Sitio:
     titular: str
     nif: str
     email: str
-    telegram: str = ""  # canal público, p. ej. "@repostarbarato"
+    telegram: str = ""  # canal público, p. ej. "@gasvia"
 
 
 def cargar_sitio() -> Sitio:
@@ -66,7 +66,7 @@ def cargar_sitio() -> Sitio:
         d = tomllib.load(f)
     url = os.getenv("SITE_URL", d.get("url", "")).rstrip("/")
     return Sitio(
-        nombre=d.get("nombre", "Repostar Barato"),
+        nombre=d.get("nombre", "GASVIA"),
         lema=d.get("lema", ""),
         url=url,
         base=urlparse(url).path.rstrip("/"),

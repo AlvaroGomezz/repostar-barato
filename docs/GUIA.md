@@ -35,13 +35,13 @@ medio, el diésel más barato en las grandes ciudades y si conviene repostar hoy
 
 1. En Telegram, habla con **@BotFather**, escribe `/newbot` y sigue los pasos. Al final te da un
    **token** (algo como `123456:ABC-...`). No lo compartas.
-2. Crea un **canal público** (por ejemplo, `@repostarbarato`) y añade tu bot como **administrador** con
+2. Crea un **canal público** (por ejemplo, `@gasvia`) y añade tu bot como **administrador** con
    permiso para publicar.
 3. En GitHub, en el repositorio: **Settings → Secrets and variables → Actions**.
    - Pestaña *Secrets*: **New repository secret**, nombre `TELEGRAM_TOKEN` y, como valor, el token.
    - Pestaña *Variables*: **New repository variable**, nombre `TELEGRAM_CHAT` y, como valor, el canal
-     (`@repostarbarato`).
-4. En `sitio.toml`, pon `telegram = "@repostarbarato"` para que la web enlace el canal.
+     (`@gasvia`).
+4. En `sitio.toml`, pon `telegram = "@gasvia"` para que la web enlace el canal.
 
 Sin estos ajustes no se publica nada y la web funciona igual.
 

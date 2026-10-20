@@ -19,7 +19,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="{{ imagen_og }}">
 <meta name="robots" content="max-image-preview:large">
-<meta name="theme-color" content="#ffd43b">
+<meta name="theme-color" content="#ffcf32">
 {% if sitio.search_console %}<meta name="google-site-verification" content="{{ sitio.search_console }}">{% endif %}
 <script>
 /* Combustible y depósito elegidos: de la URL (?c=g95) o de la última visita. Antes de pintar, sin parpadeo. */
@@ -51,7 +51,7 @@
 {% block barra %}
 <header class="barra">
   <div class="marco barra-fila">
-    <a class="marca" href="{{ url('/') }}" translate="no">{{ mcb.simbolo() }}<span>{{ sitio.nombre }}</span></a>
+    <a class="marca" href="{{ url('/') }}" translate="no">{{ mcb.simbolo() }}</a>
     <nav class="menu" aria-label="Principal">
       <a href="{{ url('/') }}#provincias">Provincias</a>
       <a href="{{ url('/calculadora/') }}"{% if ruta.startswith('/calculadora/') %} aria-current="page"{% endif %}>Calculadora</a>
@@ -112,7 +112,7 @@
       <span class="t-pequena">{{ noticia_hoy.titular }}</span>
     </a>
     {% endif %}
-    <div class="tesela t-marca" translate="no" aria-hidden="true"><span>{{ sitio.nombre }}</span></div>
+    <div class="tesela t-marca" translate="no" aria-hidden="true">{{ logo_amarillo }}</div>
     <a class="tesela t-accion" href="{{ url('/') }}#buscar">
       <span class="t-media">Busca tu gasolinera</span>
       <svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true"><path d="M8 40 40 8M16 8h24v24" fill="none" stroke="currentColor" stroke-width="4"/></svg>

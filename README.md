@@ -1,4 +1,4 @@
-# Repostar Barato
+# GASVIA (antes Repostar Barato)
 
 Web automática de precios de gasolina y diésel en España. Cada 3 horas, GitHub Actions:
 

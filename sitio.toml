@@ -1,7 +1,7 @@
 # Ajustes de la web. Cambia estos valores y la próxima publicación los aplicará.
 
-nombre = "Repostar Barato"
-lema = "Precios de gasolina y diésel actualizados cada pocas horas"
+nombre = "GASVIA"
+lema = "Gasolineras baratas cerca de ti, con los precios oficiales de hoy"
 
 # Dirección pública de la web (sin barra final). Cuando compres un dominio, cámbiala.
 url = "https://alvarogomezz.github.io/repostar-barato"
@@ -18,6 +18,6 @@ titular = ""
 nif = ""
 email = ""
 
-# Canal de Telegram donde se publica cada mañana el precio del día, p. ej. "@repostarbarato".
+# Canal de Telegram donde se publica cada mañana el precio del día, p. ej. "@gasvia".
 # Vacío = no se enlaza. Para publicar hacen falta además el bot y los ajustes de docs/GUIA.md.
 telegram = ""

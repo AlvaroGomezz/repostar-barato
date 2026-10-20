@@ -9,8 +9,8 @@ from PIL import Image, ImageDraw, ImageFont
 from .config import RAIZ
 
 ANCHO, ALTO = 1200, 675
-AMARILLO = (255, 212, 59)
-TINTA = (20, 20, 20)
+AMARILLO = (255, 207, 50)
+TINTA = (23, 25, 27)
 SUAVE = (77, 68, 48)
 BLANCO = (255, 255, 255)
 GRIS = (89, 85, 77)
@@ -59,10 +59,10 @@ def _titulo_que_cabe(d, texto: str, ancho: int, alto: int, tam_max: int = 78, ta
 
 
 def _logo(img: Image.Image, x: int, y: int, h: int = 40):
-    """La gota del logo, pegada en la imagen."""
-    from .marca import _dibujar
-    gota = _dibujar(h, None, 0, 1.18)
-    img.paste(gota, (x, y), gota)
+    """El logo de GASVIA (versión sobre amarillo), pegado en la imagen."""
+    from .marca import SOBRE_AMARILLO, logo_png
+    logo = logo_png(h, SOBRE_AMARILLO)
+    img.paste(logo, (x, y), logo)
 
 
 def _simbolo(d: ImageDraw.ImageDraw, x: int, y: int, h: int = 40):
@@ -91,8 +91,7 @@ def tarjeta(destino: Path, antetitulo: str, titulo: str, filas: list[dict], pie:
     margen = 64
 
     # Cabecera: logo y, a la derecha, la etiqueta (normalmente la fecha).
-    _logo(img, margen - 10, 46, 52)
-    d.text((margen + 40, 50), "Repostar Barato", font=fuente(32, 700), fill=TINTA)
+    _logo(img, margen, 50, 42)
     if etiqueta:
         f = fuente(24, 600)
         w = d.textlength(etiqueta, font=f)
@@ -239,8 +238,7 @@ def portada_con_foto(destino: Path, antetitulo: str, titulo: str, filas: list[di
 
     d = ImageDraw.Draw(img)
     margen = 56
-    _logo(img, margen - 10, 40, 52)
-    d.text((margen + 38, 46), "Repostar Barato", font=fuente(30, 700), fill=TINTA)
+    _logo(img, margen, 44, 40)
     if etiqueta:
         f = fuente(24, 700)
         w = d.textlength(etiqueta, font=f)

@@ -1,4 +1,4 @@
-{% macro simbolo(clase="marca-simbolo", id="gota") %}<svg class="{{ clase }}" viewBox="18 8 64 84" width="22" height="29" aria-hidden="true"><defs><mask id="{{ id }}-m" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100"><rect width="100" height="100" fill="#fff"/><path d="{{ marca_flecha }}" fill="none" stroke="#000" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></mask></defs><path d="{{ marca_gota }}" fill="currentColor" mask="url(#{{ id }}-m)"/></svg>{% endmacro %}
+{% macro simbolo(clase="marca-simbolo", id="") %}{{ logo_amarillo }}<span class="oculto">{{ sitio.nombre }}</span>{% endmacro %}
 
 {% macro migas(items) %}
 <nav class="migas" aria-label="Estás en">

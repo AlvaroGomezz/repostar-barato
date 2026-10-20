@@ -390,7 +390,7 @@
       }).addTo(mapa);
       var limites = [];
       if (extra.linea && extra.linea.length) {
-        L.polyline(extra.linea, { color: "#141414", weight: 4, opacity: .7 }).addTo(mapa);
+        L.polyline(extra.linea, { color: "#17191b", weight: 4, opacity: .7 }).addTo(mapa);
         limites = limites.concat(extra.linea);
       }
       var visibles = puntos.slice(0, extra.max || 80);

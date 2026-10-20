@@ -56,7 +56,7 @@ class Web:
             sitio=sitio, url=self.url, abs_url=self.abs_url, C=POR_CLAVE, combustibles=COMBUSTIBLES,
             UI=UI, actualizado=datos.actualizado, anio=self.hoy.year, ld_migas=self.ld_migas,
             ld_faq=self.ld_faq, deposito=DEPOSITO_L, n_total=len(datos.estaciones),
-            marca_gota=marca.gota_d(), marca_flecha=marca.FLECHA_D,
+            logo_amarillo=Markup(marca.logo_svg(**marca.SOBRE_AMARILLO, atributos=' class="logo" aria-hidden="true" focusable="false"')),
         )
         self.nac = {c.clave: resumen(datos.estaciones, c.clave) for c in COMBUSTIBLES}
         self.ayer = historico.get(self.hoy - timedelta(days=1))
@@ -514,7 +514,7 @@ class Web:
             "name": self.sitio.nombre, "short_name": self.sitio.nombre, "lang": "es",
             "description": "Las gasolineras más baratas cerca de ti, con los precios oficiales de hoy.",
             "start_url": self.url("/"), "scope": self.url("/"), "display": "standalone",
-            "background_color": "#f3f2ef", "theme_color": "#ffd43b",
+            "background_color": "#f3f2ef", "theme_color": "#ffcf32",
             "icons": [icono("icono-192.png", "192x192"), icono("icono-512.png", "512x512"),
                       icono("icono-maskable-512.png", "512x512", {"purpose": "maskable"})],
         }, ensure_ascii=False, indent=1))

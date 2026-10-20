@@ -103,3 +103,18 @@
 </section>
 <script type="application/ld+json">{{ ld_faq(preguntas)|tojson }}</script>
 {% endmacro %}
+
+
+{# Barra de temas, como la de un periódico: lo de hoy y las herramientas. #}
+{% macro temas() %}
+<nav class="temas" aria-label="Temas">
+  <div class="temas-fila">
+    {% if noticia_hoy %}<a class="tema-hoy" href="{{ url(noticia_hoy.ruta) }}"><span class="tema-etq">Hoy</span>Precio de la gasolina, {{ (noticia_hoy.fecha|fecha_media).rsplit(' de ', 1)[0] }}</a>{% endif %}
+    <a href="{{ url('/') }}#buscar">Gasolineras cerca de mí</a>
+    <a href="{{ url('/calculadora/') }}">Calculadora de gasolina</a>
+    <a href="{{ url('/') }}#provincias">Precio por provincia</a>
+    <a href="{{ url('/marcas/') }}">Marcas más baratas</a>
+    <a href="{{ url('/noticias/') }}">Noticias</a>
+  </div>
+</nav>
+{% endmacro %}

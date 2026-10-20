@@ -9,7 +9,7 @@ from xml.sax.saxutils import escape as xml_escape
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markupsafe import Markup
 
-from . import articulos, graficos
+from . import articulos, graficos, imagenes
 from .config import COMBUSTIBLES, FISCALIDAD_ESPECIAL, POR_CLAVE, RAIZ, Sitio, con_articulo
 from .datos import Datos, Estacion, Municipio, Provincia, mas_baratas, resumen
 from .texto import (capitalizar, centimos, fecha_corta, fecha_larga, fecha_media, hora, numero,
@@ -157,7 +157,9 @@ class Web:
                     for f, s in sorted(historico_completo.items(), reverse=True)]
         self.env.globals["noticia_hoy"] = noticias[0] if noticias else None
 
+        self.imagenes(noticias)
         self.inicio(noticias)
+        self.calculadora()
         for p in self.d.provincias:
             self.provincia(p)
         for m in self.d.municipios:
@@ -167,6 +169,55 @@ class Web:
         self.legales()
         self.datos_json()
         self.ficheros_tecnicos()
+
+    # ---------- imágenes para compartir y para Google ----------
+
+    def imagenes(self, noticias):
+        destino = self.salida / "imagenes"
+        etiqueta = lambda f: f"{f.day} {fecha_corta(f).split()[1].upper()} {f.year}"  # noqa: E731
+        hora_txt = hora(self.d.actualizado)
+        n = len(self.d.estaciones)
+
+        def fila(nombre, valor, nota="", sentido=0):
+            return {"nombre": nombre, "valor": f"{valor:.3f}".replace(".", ","), "unidad": "€/l",
+                    "nota": nota, "sentido": sentido}
+
+        def fila_var(clave, nombre, valor, var):
+            if var is None:
+                return fila(nombre, valor)
+            if abs(var) < 0.0005:
+                return fila(nombre, valor, "igual que ayer")
+            return fila(nombre, valor, cts(var), 1 if var > 0 else -1)
+
+        for a in noticias:
+            gancho = a.gancho[:1].lower() + a.gancho[1:]
+            filas = [fila_var(c, POR_CLAVE[c].nombre, a.medias[c], a.cambios.get(c))
+                     for c in ("diesel", "g95") if a.medias.get(c)]
+            imagenes.tarjeta(self.salida / a.imagen.lstrip("/"), "Precio de la gasolina hoy",
+                             f"{a.titular}: {gancho}", filas,
+                             pie=f"Precios oficiales de {numero(a.n_estaciones, 0)} gasolineras · {hora(a.actualizado)}",
+                             etiqueta=etiqueta(a.fecha))
+        medias = [fila_var(c, POR_CLAVE[c].nombre, self.nac[c].media, self.variacion(c))
+                  for c in ("diesel", "g95") if self.nac[c].media]
+        imagenes.tarjeta(destino / "portada.jpg", "Precios oficiales de hoy", "Gasolineras baratas cerca de ti",
+                         medias, pie=f"{numero(n, 0)} gasolineras de España · {hora_txt}", etiqueta=etiqueta(self.hoy))
+        imagenes.tarjeta(destino / "calculadora.jpg", "Calculadora de gasolina", "¿Cuánto cuesta tu viaje en coche?",
+                         medias, pie="Con el precio medio de hoy", etiqueta=etiqueta(self.hoy))
+        for p in self.d.provincias:
+            filas = []
+            for c in ("diesel", "g95"):
+                barata = mas_baratas(p.estaciones, c, 1)
+                if barata:
+                    filas.append(fila(f"{POR_CLAVE[c].nombre}, la más barata", barata[0].precios[c],
+                                      f"media {precio(resumen(p.estaciones, c).media).replace(' €', '')}"))
+            imagenes.tarjeta(destino / "provincias" / f"{p.slug}.jpg", f"Precio de la gasolina en {p.nombre}",
+                             f"Gasolineras más baratas en {p.nombre} hoy", filas,
+                             pie=f"{numero(len(p.estaciones), 0)} gasolineras · {hora_txt}", etiqueta=etiqueta(self.hoy))
+
+    def calculadora(self):
+        precios = {c: self.nac[c].media for c in UI if self.nac[c].media}
+        self.escribir("/calculadora/", "calculadora.html", prioridad="0.8", precios=precios,
+                      og_imagen="/imagenes/calculadora.jpg")
 
     def inicio(self, noticias):
         peninsula = [e for e in self.d.estaciones if e.provincia_id not in FISCALIDAD_ESPECIAL]
@@ -261,6 +312,7 @@ class Web:
                     f"Hay {numero(len(p.estaciones), 0)} gasolineras de venta al público en "
                     f"{len(p.municipios)} municipios; {r24} abren las 24 horas."))
         self.escribir(p.ruta, "provincia.html", prioridad="0.8", p=p, info=info, nac=self.nac,
+                      og_imagen=f"/imagenes/provincias/{p.slug}.jpg",
                       municipios=municipios, faq=faq,
                       otras=[x for x in self.d.provincias if x.id != p.id])
 
@@ -314,6 +366,7 @@ class Web:
         self.escribir(
             m.ruta, "municipio.html", prioridad="0.7" if n > 1 else "0.5",
             m=m, info=info, res=res, res_p=res_p, filas=self.filas(m.estaciones), dist=dist,
+            og_imagen=f"/imagenes/provincias/{m.provincia.slug}.jpg",
             vecinos=vecinos, faq=faq, n24=n24,
             presentes=[c for c in COMBUSTIBLES if any(c.clave in e.precios for e in m.estaciones)],
         )
@@ -338,9 +391,11 @@ class Web:
                           provincias=provincias)
 
     def noticias(self, noticias):
-        self.escribir("/noticias/", "noticias.html", prioridad="0.7", noticias=noticias)
+        self.escribir("/noticias/", "noticias.html", prioridad="0.7", noticias=noticias,
+                      og_imagen=noticias[0].imagen if noticias else None)
         for i, a in enumerate(noticias):
-            self.escribir(a.ruta, "articulo.html", prioridad="0.6", a=a,
+            self.escribir(a.ruta, "articulo.html", prioridad="0.6", a=a, og_imagen=a.imagen,
+                          otras=[x for x in noticias if x is not a][:4],
                           anterior=noticias[i + 1] if i + 1 < len(noticias) else None,
                           siguiente=noticias[i - 1] if i > 0 else None)
 

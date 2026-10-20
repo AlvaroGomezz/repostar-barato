@@ -38,6 +38,24 @@ repostar. Cada pantalla responde primero a una pregunta:
 
 En el móvil, la tarjeta de tu zona va justo después del combustible, y los litros, después de la tarjeta.
 
+## Estilo periódico
+
+- **Barra de temas** en todas las páginas, como la de un diario: «HOY · Precio de la gasolina, 20 de
+  octubre», gasolineras cerca de mí, calculadora, provincias, marcas y noticias.
+- **Lo último** en la portada: la noticia del día en grande, con su imagen, y al lado los días anteriores y
+  las herramientas.
+- **La noticia** se maqueta como en un diario: antetítulo, titular largo, sumario, imagen, firma y fecha,
+  botones para compartir y el precio en las 12 grandes ciudades («El precio de la gasolina hoy en Madrid»).
+- **Imágenes para Google y redes** (`generador/imagenes.py`, con Pillow): 1200 × 675, dibujadas con los
+  precios del día. Hay una por noticia, una para la portada, otra para la calculadora y una por provincia
+  (los municipios usan la de su provincia). Se declaran en `og:image`, en el `NewsArticle` y con
+  `max-image-preview:large`, que es lo que Google necesita para enseñarlas en los resultados.
+
+## Calculadora
+
+`/calculadora/`: lo que cuesta un viaje (kilómetros, ida y vuelta, consumo, precio y personas que pagan)
+con el precio medio de hoy del combustible elegido, y lo que cuesta llenar el depósito.
+
 ## Sistema
 
 - **Tipografía:** Albert Sans.

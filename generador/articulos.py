@@ -31,10 +31,16 @@ class Articulo:
     titular: str = ""      # corto, para el h1 (cabe en dos líneas en el móvil)
     gancho: str = ""       # qué ha pasado hoy, en pocas palabras
     medias: dict = field(default_factory=dict)  # {"diesel": 1.887, ...}
+    cambios: dict = field(default_factory=dict)  # {"diesel": 0.022, ...} desde el día anterior
+    n_estaciones: int = 0
 
     @property
     def ruta(self) -> str:
         return f"/noticias/{self.fecha.isoformat()}-precio-gasolina-diesel-hoy/"
+
+    @property
+    def imagen(self) -> str:
+        return f"/imagenes/noticias/{self.fecha.isoformat()}.jpg"
 
 
 def _mov(hoy: float, antes: float | None, rng: random.Random) -> tuple[str, float]:
@@ -137,6 +143,32 @@ def escribir(snap: dict, historico: dict, ruta_fn) -> Articulo:
     s.parrafos.append(texto)
     secciones.append(s)
 
+    # ---- grandes ciudades: lo que más se busca ("precio gasolina hoy en Madrid") ----
+    for i, ciu in enumerate(snap.get("ciudades", [])):
+        g, dd = ciu.get("g95"), ciu.get("diesel")
+        if not g or not dd:
+            continue
+        s = Seccion(f"El precio de la gasolina hoy en {ciu['nombre']}")
+        abre = rng.choice([f"Este {_dia_mes(fecha)}", "Hoy", f"A {_dia_mes(fecha)}"]) if i % 3 == 0 else             rng.choice(["En esta ciudad", "Aquí", "Hoy"])
+        s.parrafos.append(Markup(
+            "{abre}, la gasolina 95 cuesta en {ciudad} entre {gmin} y {gmax} euros por litro, con una media de "
+            "{gmed}. El diésel va de {dmin} a {dmax} (media de {dmed})."
+        ).format(abre=abre, ciudad=_enlace(ruta_fn, ciu["ruta"], ciu["nombre"]),
+                 gmin=_b(precio(g["min"], 3).replace(" €", "")), gmax=precio(g["max"], 3).replace(" €", ""),
+                 gmed=precio(g["media"]), dmin=_b(precio(dd["min"], 3).replace(" €", "")),
+                 dmax=precio(dd["max"], 3).replace(" €", ""), dmed=precio(dd["media"])))
+        dif = (dd["max"] - dd["min"]) * DEPOSITO_L
+        mismo = g["rotulo"] == dd["rotulo"] and g["dir"] == dd["dir"]
+        if mismo:
+            donde = Markup("La más barata para los dos combustibles es {r} ({dir}).").format(r=_b(g["rotulo"]), dir=g["dir"])
+        else:
+            donde = Markup("La gasolina 95 más barata está en {rg} ({dg}) y el diésel más barato, en {rd} ({ddir}).").format(
+                rg=_b(g["rotulo"]), dg=g["dir"], rd=_b(dd["rotulo"]), ddir=dd["dir"])
+        s.parrafos.append(donde + Markup(" ") + escape(
+            f"Entre la más cara y la más barata de sus {ciu['n']} gasolineras hay {precio(dif, 2)} de diferencia "
+            f"al llenar {DEPOSITO_L} litros de diésel."))
+        secciones.append(s)
+
     # ---- provincias ----
     provs = [(pid, p) for pid, p in snap["prov"].items() if "diesel" in p and "g95" in p]
     pen = [(pid, p) for pid, p in provs if pid not in FISCALIDAD_ESPECIAL]
@@ -226,5 +258,7 @@ def escribir(snap: dict, historico: dict, ruta_fn) -> Articulo:
 
     titular = f"Gasolina y diésel hoy, {_dia_mes(fecha)}"
     medias = {k: v["media"] for k, v in nac.items() if k in ("diesel", "g95", "g98", "glp")}
+    cambios = {"diesel": d_dif if ayer else None, "g95": g_dif if ayer else None}
     return Articulo(fecha, titulo, descripcion, entradilla, secciones, actualizado,
-                    titular=titular, gancho=gancho[:1].upper() + gancho[1:], medias=medias)
+                    titular=titular, gancho=gancho[:1].upper() + gancho[1:], medias=medias,
+                    cambios=cambios, n_estaciones=n_est)

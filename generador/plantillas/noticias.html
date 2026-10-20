@@ -1,17 +1,24 @@
 {% extends "base.html" %}
 {% import "macros.html" as mc with context %}
-{% block titulo %}Noticias: precio de la gasolina y el diésel día a día{% endblock %}
-{% block descripcion %}Cada día, la evolución del precio de los carburantes en España con datos oficiales: provincias y gasolineras más baratas.{% endblock %}
+{% block titulo %}Noticias: precio de la gasolina y el diésel hoy, día a día{% endblock %}
+{% block descripcion %}Cada día, el precio de la gasolina y el diésel en España y en las grandes ciudades, con datos oficiales: provincias y gasolineras más baratas.{% endblock %}
 {% block contenido %}
 {{ mc.migas([("Noticias", none)]) }}
 <div class="titulo">
-  <h1>Precio de los carburantes, día a día</h1>
-  <p class="subtitulo">Un resumen cada día con los datos oficiales del Ministerio</p>
+  <h1>Precio de la gasolina, día a día</h1>
+  <p class="subtitulo">Un resumen cada día con los datos oficiales del Ministerio · {{ mc.frescura() }}</p>
 </div>
 <section class="bloque" aria-label="Noticias">
-  <ul class="noticias">
+  <ul class="noticias-lista">
   {% for a in noticias %}
-    <li><a href="{{ url(a.ruta) }}"><time datetime="{{ a.fecha.isoformat() }}">{{ a.fecha|fecha_larga }}</time><span>{{ a.titular }}: {{ a.gancho|lower }}</span></a></li>
+    <li><a href="{{ url(a.ruta) }}" class="diario-item">
+      <span class="di-texto">
+        <span class="diario-tema">Precio de la gasolina · <time datetime="{{ a.fecha.isoformat() }}">{{ a.fecha|fecha_media }}</time></span>
+        <span class="di-titulo">{{ a.titulo }}</span>
+        <span class="di-nota">{{ a.descripcion }}</span>
+      </span>
+      <img src="{{ url(a.imagen) }}" alt="" width="1200" height="675" loading="{{ 'eager' if loop.first else 'lazy' }}" decoding="async">
+    </a></li>
   {% endfor %}
   </ul>
 </section>

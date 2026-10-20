@@ -17,10 +17,12 @@
       <a class="cabeza-logo" href="{{ url('/') }}" translate="no">{{ mc.simbolo() }}<span>{{ sitio.nombre }}</span></a>
       <nav class="cabeza-nav" aria-label="Principal">
         <a href="#provincias">Provincias</a>
+        <a href="{{ url('/calculadora/') }}">Calculadora</a>
         <a href="{{ url('/marcas/') }}">Marcas</a>
         <a href="{{ url('/noticias/') }}">Noticias</a>
       </nav>
     </header>
+    {{ mc.temas() }}
     <div class="cabeza-cuerpo">
       <div class="cabeza-izq">
         <h1 id="cabeza-t" class="lineas"><span class="linea"><span data-linea style="--i:0">Gasolineras baratas</span></span> <span class="linea"><span data-linea style="--i:1">cerca de ti</span></span></h1>
@@ -75,7 +77,46 @@
   </div>
 </section>
 
-{# ---------- 2. Hoy en España: las medias, como referencia ---------- #}
+{# ---------- 2. Noticias y herramientas, como la portada de un periódico ---------- #}
+{% set principal = noticias[0] if noticias else none %}
+<section class="diario seccion" aria-labelledby="diario-t">
+  <h2 id="diario-t" class="titular-seccion">Lo último</h2>
+  <div class="diario-rejilla">
+    {% if principal %}
+    <article class="diario-principal">
+      <a href="{{ url(principal.ruta) }}" class="diario-enlace">
+        <img src="{{ url(principal.imagen) }}" alt="Precio medio del diésel y la gasolina 95 el {{ principal.fecha|fecha_media }}" width="1200" height="675" loading="lazy" decoding="async">
+        <span class="diario-tema">Precio de la gasolina</span>
+        <span class="diario-titulo">{{ principal.titulo }}</span>
+        <span class="diario-texto">{{ principal.descripcion }}</span>
+        <time class="diario-fecha" datetime="{{ principal.actualizado.isoformat() }}">{{ principal.fecha|fecha_larga|capitalize }} · {{ principal.actualizado|hora }}</time>
+      </a>
+    </article>
+    {% endif %}
+    <ul class="diario-lista">
+      {% for a in noticias[1:3] %}
+      <li><a href="{{ url(a.ruta) }}" class="diario-item">
+        <span class="di-texto"><span class="diario-tema">Precio de la gasolina</span><span class="di-titulo">{{ a.titulo }}</span><time datetime="{{ a.fecha.isoformat() }}">{{ a.fecha|fecha_media }}</time></span>
+        <img src="{{ url(a.imagen) }}" alt="" width="1200" height="675" loading="lazy" decoding="async">
+      </a></li>
+      {% endfor %}
+      <li><a href="{{ url('/calculadora/') }}" class="diario-item">
+        <span class="di-texto"><span class="diario-tema">Herramienta</span><span class="di-titulo">Calculadora de gasolina: cuánto te cuesta un viaje en coche</span><span class="di-nota">Con el precio de hoy. Pon los kilómetros y lo que gasta tu coche.</span></span>
+        <img src="{{ url('/imagenes/calculadora.jpg') }}" alt="" width="1200" height="675" loading="lazy" decoding="async">
+      </a></li>
+      <li><a href="#buscar" class="diario-item">
+        <span class="di-texto"><span class="diario-tema">Herramienta</span><span class="di-titulo">Gasolineras más baratas cerca de ti</span><span class="di-nota">Con tu ubicación: distancia, precio y cómo llegar.</span></span>
+        <span class="di-icono" aria-hidden="true"><svg viewBox="0 0 20 20" width="40" height="40"><path d="M10 18s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10Z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="8" r="2.2" fill="currentColor"/></svg></span>
+      </a></li>
+      <li><a href="{{ url('/marcas/') }}" class="diario-item">
+        <span class="di-texto"><span class="diario-tema">Comparativa</span><span class="di-titulo">¿Qué gasolinera es más barata? Las marcas, de más barata a más cara</span><span class="di-nota">Repsol, Moeve, Galp, Ballenoil, Plenergy y las demás, con la media de hoy.</span></span>
+        <span class="di-icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="40" height="40"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
+      </a></li>
+    </ul>
+  </div>
+</section>
+
+{# ---------- 3. Hoy en España: las medias, como referencia ---------- #}
 <section class="hoy seccion" aria-labelledby="hoy-t">
   <div class="hoy-cab">
     <h2 id="hoy-t" class="titular-seccion">Hoy en España</h2>
@@ -95,7 +136,7 @@
   {% endfor %}
 </section>
 
-{# ---------- 3. Para pagar menos: datos de hoy que ayudan a elegir ---------- #}
+{# ---------- 4. Para pagar menos: datos de hoy que ayudan a elegir ---------- #}
 <section class="consejos seccion" aria-labelledby="consejos-t">
   <h2 id="consejos-t" class="titular-seccion">Para pagar menos</h2>
   <div class="consejos-rejilla">
@@ -135,7 +176,7 @@
   </div>
 </section>
 
-{# ---------- 4. Provincias, por comunidad ---------- #}
+{# ---------- 5. Provincias, por comunidad ---------- #}
 <section class="provincias seccion" id="provincias" aria-labelledby="prov-t">
   <div class="prov-cab">
     <h2 id="prov-t" class="titular-seccion">Busca por provincia</h2>

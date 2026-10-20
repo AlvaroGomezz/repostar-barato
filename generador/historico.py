@@ -22,6 +22,7 @@ def instantanea(datos: Datos) -> dict:
         "fecha": datos.actualizado.date().isoformat(),
         "actualizado": datos.actualizado.isoformat(),
         "nac": {}, "pen": {}, "prov": {}, "mun": {}, "top": {}, "top_pen": {}, "marcas": {},
+        "ciudades": [],
     }
     for c in COMBUSTIBLES:
         r = resumen(datos.estaciones, c.clave)
@@ -54,6 +55,22 @@ def instantanea(datos: Datos) -> dict:
             if r.n:
                 fila[clave] = r.media
         snap["marcas"][marca.slug] = fila
+    # Las grandes ciudades (la de más gasolineras de cada provincia, hasta 12): rango de precios del día.
+    vistas = set()
+    for m in sorted(datos.municipios, key=lambda m: -len(m.estaciones)):
+        if m.provincia.id in vistas:
+            continue
+        vistas.add(m.provincia.id)
+        fila = {"nombre": m.nombre, "ruta": m.ruta, "n": len(m.estaciones), "prov": m.provincia.nombre}
+        for clave in PRINCIPALES:
+            r = resumen(m.estaciones, clave)
+            barata = mas_baratas(m.estaciones, clave, 1)
+            if r.n and barata:
+                fila[clave] = {"min": barata[0].precios[clave], "max": r.maximo, "media": r.media, "n": r.n,
+                               "rotulo": barata[0].rotulo, "dir": barata[0].direccion}
+        snap["ciudades"].append(fila)
+        if len(snap["ciudades"]) == 12:
+            break
     return snap
 
 

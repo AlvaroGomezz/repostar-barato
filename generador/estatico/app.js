@@ -80,6 +80,7 @@
       var v = { min: min * l, max: max * l, ahorro: (max - min) * l };
       $$("[data-coste]", p).forEach(function (x) { x.textContent = euros.format(v[x.getAttribute("data-coste")]) + " €"; });
     });
+    $$("[data-coste-l]").forEach(function (x) { x.textContent = euros.format(parseFloat(x.getAttribute("data-coste-l")) * l) + " €"; });
     if (desdeUsuario) guardar("rb-litros", l);
   }
   $$("button[data-litros]").forEach(function (b) {
@@ -364,7 +365,9 @@
         '<p class="zm-sitio"><b translate="no">' + esc(e[2]) + "</b> " + lugar + "</p>" +
         '<p class="zm-ahorro">Llenar ' + litros + " litros: <b>" + euros.format(e[idx] * litros) + " €</b>" +
         (con.length > 2 && ahorro >= 0.5 ? '. Ahorras <b class="dato">' + euros.format(ahorro) + " €</b> frente a la media de " + (gps ? "la zona" : esc(estado.nombre)) : "") + ".</p>" +
-        '<a class="boton zm-ir" href="' + mapa(e) + '" target="_blank" rel="nofollow noopener">Cómo llegar</a></div>';
+        '<div class="zm-acciones"><a class="boton zm-ir" href="' + mapa(e) + '" target="_blank" rel="nofollow noopener">Cómo llegar</a>' +
+        '<a class="zm-compartir" data-compartir href="https://wa.me/?text=' + encodeURIComponent(e[2] + ", " + e[3] + " (" + e[4] + "): " +
+          NOMBRES[c] + " a " + litro.format(e[idx]) + " €/l. Cómo llegar: " + mapa(e)) + '" target="_blank" rel="nofollow noopener">Compartir</a></div></div>';
 
       var resto = (orden === "distancia" ? con.slice().sort(function (a, b) { return a.d - b.d; }) : porPrecio)
         .filter(function (x) { return x !== mejor; });
@@ -496,6 +499,56 @@
   // En la página de un municipio: se recuerda para enseñarlo en la portada la próxima vez.
   $$("[data-recordar-lugar]").forEach(function (el) {
     guardar("rb-lugar", JSON.stringify({ tipo: "mun", url: el.getAttribute("data-url"), nombre: el.getAttribute("data-nombre") }));
+  });
+
+  // ---------- compartir y copiar ----------
+  document.addEventListener("click", function (ev) {
+    var a = ev.target.closest && ev.target.closest("[data-compartir]");
+    if (!a || !navigator.share) return;
+    ev.preventDefault();
+    var texto = decodeURIComponent(a.getAttribute("href").split("text=")[1] || "");
+    navigator.share({ text: texto }).catch(function () {});
+  });
+  $$("[data-copiar]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var hecho = function () { var t = b.textContent; b.textContent = "Enlace copiado"; setTimeout(function () { b.textContent = t; }, 2000); };
+      if (navigator.clipboard) navigator.clipboard.writeText(b.getAttribute("data-copiar")).then(hecho, function () {});
+    });
+  });
+
+  // ---------- calculadora de viaje ----------
+  $$("[data-calc]").forEach(function (form) {
+    var precios = JSON.parse(form.getAttribute("data-precios") || "{}");
+    var q = function (s) { return form.querySelector(s); };
+    var km = q("[data-calc-km]"), vuelta = q("[data-calc-vuelta]"), consumo = q("[data-calc-consumo]");
+    var precio = q("[data-calc-precio]"), personas = q("[data-calc-personas]"), origen = q("[data-calc-origen]");
+    var total = document.querySelector("[data-calc-total]"), detalle = document.querySelector("[data-calc-detalle]");
+    var porPersona = document.querySelector("[data-calc-persona]"), ahorro = document.querySelector("[data-calc-ahorro]");
+    var editado = false;
+    function num(el) { return parseFloat(String(el.value).replace(",", ".")); }
+    function calcular() {
+      var d = num(km) * (vuelta.checked ? 2 : 1), l = d * num(consumo) / 100, p = num(precio), n = Math.max(1, Math.round(num(personas)) || 1);
+      if (!(d > 0) || !(l > 0) || !(p > 0)) { total.textContent = "—"; detalle.textContent = "Rellena la distancia, el consumo y el precio."; porPersona.hidden = true; return; }
+      total.textContent = euros.format(l * p);
+      detalle.textContent = kmf.format(d) + " km: " + kmf.format(l) + " litros a " + litro.format(p) + " €/l.";
+      porPersona.hidden = n < 2;
+      porPersona.textContent = "Entre " + n + " personas: " + euros.format(l * p / n) + " € cada una.";
+      ahorro.innerHTML = "Cada 10 céntimos menos por litro te ahorran <b class=\"dato\">" + euros.format(l * 0.1) + " €</b> en este viaje.";
+    }
+    var kmf = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 1 });
+    function precioDelComb() {
+      var c = comb();
+      if (!editado && precios[c]) {
+        precio.value = precios[c].toFixed(3);
+        origen.textContent = "Media de hoy de" + (c === "g95" || c === "g98" ? " la " : "l ") + NOMBRES[c] + " en España.";
+      }
+      calcular();
+    }
+    precio.addEventListener("input", function () { editado = true; origen.textContent = "Precio que has puesto tú."; calcular(); });
+    [km, consumo, personas].forEach(function (el) { el.addEventListener("input", calcular); });
+    vuelta.addEventListener("change", calcular);
+    alCambiarComb.push(precioDelComb);
+    precioDelComb();
   });
 
   // ---------- estado inicial ----------

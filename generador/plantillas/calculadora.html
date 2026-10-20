@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% import "macros.html" as mc with context %}
+{% set km0, consumo0 = 300, 6.5 %}
+{% set p0 = precios.diesel %}
+{% block titulo %}Calculadora de gasolina: cuánto cuesta un viaje en coche (precios de hoy){% endblock %}
+{% block descripcion %}Calcula cuánto te cuesta un viaje en coche y cuánto cuesta llenar el depósito con el precio de hoy del diésel ({{ precios.diesel|precio }}/l) y la gasolina 95 ({{ precios.g95|precio }}/l).{% endblock %}
+{% block contenido %}
+{{ mc.migas([("Calculadora de gasolina", none)]) }}
+<div class="titulo">
+  <h1>Calculadora de gasolina: cuánto cuesta tu viaje</h1>
+  <p class="subtitulo">Con el precio medio de hoy en España, o con el que tú pongas · {{ mc.frescura() }}</p>
+</div>
+
+{{ mc.selector() }}
+
+<div class="rejilla-calc">
+  <section class="bloque calc" aria-labelledby="viaje-t">
+    <h2 id="viaje-t">Tu viaje</h2>
+    <form class="calc-form" data-calc data-precios='{{ precios|tojson }}' onsubmit="return false">
+      <div class="campo-calc">
+        <label for="calc-km">Distancia</label>
+        <div class="con-unidad"><input id="calc-km" type="number" inputmode="decimal" min="1" step="any" value="{{ km0 }}" data-calc-km><span>km</span></div>
+        <label class="casilla"><input type="checkbox" data-calc-vuelta> Ida y vuelta</label>
+      </div>
+      <div class="campo-calc">
+        <label for="calc-consumo">Lo que gasta tu coche</label>
+        <div class="con-unidad"><input id="calc-consumo" type="number" inputmode="decimal" min="1" max="40" step="0.1" value="{{ consumo0 }}" data-calc-consumo><span>l/100 km</span></div>
+        <p class="nota">Un turismo gasta entre 5 y 8 litros; lo ves en el ordenador de a bordo.</p>
+      </div>
+      <div class="campo-calc">
+        <label for="calc-precio">Precio del litro</label>
+        <div class="con-unidad"><input id="calc-precio" type="number" inputmode="decimal" min="0.3" max="4" step="0.001" value="{{ '%.3f'|format(p0) }}" data-calc-precio><span>€/l</span></div>
+        <p class="nota" data-calc-origen>Media de hoy del diésel en España.</p>
+      </div>
+      <div class="campo-calc">
+        <label for="calc-personas">Personas que pagan</label>
+        <div class="con-unidad"><input id="calc-personas" type="number" inputmode="numeric" min="1" max="9" step="1" value="1" data-calc-personas><span>personas</span></div>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel calc-resultado" aria-labelledby="resultado-t" aria-live="polite">
+    <p class="respuesta-etiqueta" id="resultado-t">Lo que te cuesta el viaje</p>
+    {% set litros0 = km0 * consumo0 / 100 %}
+    <p class="respuesta-precio"><span data-calc-total>{{ "%.2f"|format(litros0 * p0)|replace(".", ",") }}</span><span class="unidad"> €</span></p>
+    <p class="respuesta-sitio" data-calc-detalle>{{ "%.1f"|format(litros0)|replace(".", ",") }} litros a {{ p0|precio }}/l.</p>
+    <p class="respuesta-meta" data-calc-persona hidden></p>
+    <p class="hallazgo" data-calc-ahorro>Cada 10 céntimos menos por litro te ahorran <b class="dato">{{ "%.2f"|format(litros0 * 0.10)|replace(".", ",") }} €</b> en este viaje.</p>
+    <a class="boton" href="{{ url('/') }}#buscar">Buscar la más barata cerca de mí</a>
+  </section>
+</div>
+
+<section class="bloque" aria-labelledby="deposito-t">
+  <div class="bloque-cabecera">
+    <h2 id="deposito-t">Cuánto cuesta llenar el depósito hoy</h2>
+    {{ mc.litros() }}
+  </div>
+  <ul class="deposito-lista">
+    {% for c in UI %}{% if precios[c] %}
+    <li><span class="dl-nombre">{{ C[c].nombre }}</span><span class="dl-precio">{{ precios[c]|precio }}/l</span><b class="dl-total" data-coste-l="{{ precios[c] }}">{{ (precios[c] * deposito)|precio(2) }}</b></li>
+    {% endif %}{% endfor %}
+  </ul>
+  <p class="nota">Con el precio medio de hoy en España. En tu ciudad puede ser bastante menos: busca tu municipio para verlo.</p>
+</section>
+
+{{ mc.faq([
+  ("¿Cómo se calcula lo que cuesta un viaje en coche?", "Multiplica los kilómetros por el consumo de tu coche en litros cada 100 km y divide entre 100: son los litros que gastarás. Multiplícalos por el precio del litro. Por ejemplo, 300 km con un coche que gasta 6,5 litros son 19,5 litros; a " ~ (precios.diesel|precio) ~ " el litro de diésel, " ~ ((19.5 * precios.diesel)|precio(2)) ~ "."),
+  ("¿Cuánto gasta un coche cada 100 kilómetros?", "Un turismo de gasolina gasta entre 5 y 8 litros cada 100 km, y uno diésel, entre 4 y 7. En ciudad y a más de 120 km/h el consumo sube; el dato real de tu coche aparece en el ordenador de a bordo."),
+  ("¿Cuánto cuesta llenar un depósito de 50 litros hoy?", "Con el precio medio de hoy, " ~ ((precios.diesel * 50)|precio(2)) ~ " con diésel y " ~ ((precios.g95 * 50)|precio(2)) ~ " con gasolina 95."),
+  ("¿Cómo puedo gastar menos en gasolina?", "Reposta en la gasolinera más barata de tu zona (en una misma ciudad la diferencia supera a menudo los 10 céntimos por litro), mantén una velocidad constante, revisa la presión de los neumáticos y evita llevar peso o portaequipajes que no uses."),
+]) }}
+{% endblock %}

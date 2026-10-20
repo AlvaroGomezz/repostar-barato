@@ -17,7 +17,7 @@ search_console = ""
 # Ojo: lo que pongas aquí se publica en la web y en GitHub. Déjalo vacío hasta que haga falta (ver docs/GUIA.md).
 titular = ""
 nif = ""
-email = ""
+email = "contacto@gasvia.es"
 # Domicilio (la LSSI también lo pide). Puede ser un apartado de correos. Vacío = no se muestra.
 domicilio = ""
 

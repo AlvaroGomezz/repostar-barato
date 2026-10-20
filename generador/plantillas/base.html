@@ -101,6 +101,7 @@
       <a href="{{ url('/noticias/') }}">Noticias</a>
       {% if sitio.telegram %}<a href="https://t.me/{{ sitio.telegram.lstrip('@') }}" rel="noopener">Canal de Telegram</a>{% endif %}
       <a href="{{ url('/sobre/') }}">Sobre esta web</a>
+      {% if sitio.email %}<a href="mailto:{{ sitio.email }}">Contacto</a>{% endif %}
       <a href="{{ url('/aviso-legal/') }}">Aviso legal</a>
       <a href="{{ url('/privacidad/') }}">Privacidad</a>
       <a href="{{ url('/cookies/') }}">Cookies</a>

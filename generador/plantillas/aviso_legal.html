@@ -10,7 +10,7 @@
 {% if sitio.titular %}
 <p>En cumplimiento de la Ley 34/2002, de Servicios de la Sociedad de la Información y de Comercio Electrónico (LSSI-CE), se informa de que esta web es propiedad de <strong>{{ sitio.titular }}</strong>{% if sitio.nif %}, con NIF {{ sitio.nif }}{% endif %}{% if sitio.domicilio %}, domicilio en {{ sitio.domicilio }}{% endif %}{% if sitio.email %}, y correo electrónico de contacto <a href="mailto:{{ sitio.email }}">{{ sitio.email }}</a>{% endif %}.</p>
 {% else %}
-<p>{{ sitio.nombre }} es un proyecto independiente y gratuito de información sobre los precios de los carburantes en España, sin vínculo con ninguna gasolinera ni administración pública.</p>
+<p>{{ sitio.nombre }} es un proyecto independiente y gratuito de información sobre los precios de los carburantes en España, sin vínculo con ninguna gasolinera ni administración pública.{% if sitio.email %} Contacto: <a href="mailto:{{ sitio.email }}">{{ sitio.email }}</a>.{% endif %}</p>
 {% endif %}
 <h2>Objeto</h2>
 <p>{{ sitio.nombre }} ofrece información gratuita sobre los precios de los carburantes en España a partir de los datos abiertos publicados por el Ministerio para la Transición Ecológica y el Reto Demográfico.</p>

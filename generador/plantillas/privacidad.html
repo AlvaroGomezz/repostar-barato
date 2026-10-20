@@ -6,7 +6,7 @@
 {{ mc.migas([("Privacidad", none)]) }}
 <article class="articulo">
 <h1>Política de privacidad</h1>
-<p><strong>Responsable:</strong> {{ sitio.titular or "[nombre del titular pendiente]" }} ({{ sitio.email or "[correo pendiente]" }}).</p>
+{% if sitio.titular %}<p><strong>Responsable:</strong> {{ sitio.titular }}{% if sitio.email %} ({{ sitio.email }}){% endif %}.</p>{% endif %}
 <h2>Qué datos tratamos</h2>
 <p>{{ sitio.nombre }} no tiene registro de usuarios ni formularios, y no recoge tus datos personales directamente.</p>
 <ul>
@@ -17,6 +17,6 @@
   <li><strong>Alojamiento:</strong> el proveedor de alojamiento puede registrar datos técnicos de las visitas (como la dirección IP) por motivos de seguridad.</li>
 </ul>
 <h2>Tus derechos</h2>
-<p>Puedes ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad escribiendo a {{ sitio.email or "[correo pendiente]" }}, y reclamar ante la Agencia Española de Protección de Datos (aepd.es).</p>
+<p>Puedes ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad {% if sitio.email %}escribiendo a {{ sitio.email }}, {% endif %}y reclamar ante la Agencia Española de Protección de Datos (aepd.es).</p>
 </article>
 {% endblock %}

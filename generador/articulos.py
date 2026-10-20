@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 
 from markupsafe import Markup, escape
 
-from .config import FISCALIDAD_ESPECIAL, POR_CLAVE
+from .config import FISCALIDAD_ESPECIAL, POR_CLAVE, con_articulo
 from .texto import DIAS, MESES, centimos, fecha_larga, hora, numero, precio
 
 DEPOSITO_L = 55
@@ -28,6 +28,9 @@ class Articulo:
     entradilla: Markup
     secciones: list[Seccion]
     actualizado: datetime
+    titular: str = ""      # corto, para el h1 (cabe en dos líneas en el móvil)
+    gancho: str = ""       # qué ha pasado hoy, en pocas palabras
+    medias: dict = field(default_factory=dict)  # {"diesel": 1.887, ...}
 
     @property
     def ruta(self) -> str:
@@ -119,16 +122,16 @@ def escribir(snap: dict, historico: dict, ruta_fn) -> Articulo:
         d_sem = semana["nac"].get("diesel", {}).get("media")
         g_sem = semana["nac"].get("g95", {}).get("media")
         if d_sem and g_sem:
-            def frase(nombre, ahora, antes):
+            def frase(nombre, ahora, antes, fem=False):
                 dif = ahora - antes
                 if abs(dif) < UMBRAL:
                     return f"{nombre} está igual que hace una semana ({precio(antes)})"
-                sentido = "más caro" if dif > 0 else "más barato"
+                sentido = ("más car" if dif > 0 else "más barat") + ("a" if fem else "o")
                 return (f"{nombre} está {centimos(dif)} {sentido} que hace una semana "
                         f"(entonces costaba {precio(antes)})")
             texto += Markup(" ") + escape(
                 f"En comparación, {frase('el diésel', d_hoy, d_sem)}, y "
-                f"{frase('la gasolina 95', g_hoy, g_sem)}. "
+                f"{frase('la gasolina 95', g_hoy, g_sem, fem=True)}. "
                 f"Para un depósito completo, la diferencia semanal es de "
                 f"{precio(abs(d_hoy - d_sem) * DEPOSITO_L, 2)} en diésel.")
     s.parrafos.append(texto)
@@ -172,12 +175,12 @@ def escribir(snap: dict, historico: dict, ruta_fn) -> Articulo:
         top = snap["top_pen"].get(clave, [])
         if not top:
             continue
-        nombre = POR_CLAVE[clave].nombre_largo
-        s = Seccion(f"Las 10 gasolineras con el {nombre} más barato de la Península")
+        frase = con_articulo(clave, "barat")
+        s = Seccion(f"Las 10 gasolineras con {frase} de la Península")
         primera = top[0]
         s.parrafos.append(Markup(
-            "La gasolinera con el {n} más barato hoy es {r}, en {dir} ({m}, {p}), a {pr} el litro."
-        ).format(n=nombre, r=_b(primera["rotulo"]), dir=primera["dir"],
+            "La gasolinera con {n} hoy es {r}, en {dir} ({m}, {p}), a {pr} el litro."
+        ).format(n=frase, r=_b(primera["rotulo"]), dir=primera["dir"],
                  m=_enlace(ruta_fn, primera["ruta"], primera["mun"]), p=primera["prov"],
                  pr=_b(precio(primera["precio"]))))
         s.tabla = {
@@ -221,4 +224,7 @@ def escribir(snap: dict, historico: dict, ruta_fn) -> Articulo:
         "Las medias son aritméticas sobre las gasolineras de venta al público. El precio final puede "
         "variar por descuentos de fidelización o cambios posteriores; confírmalo en el surtidor.")]))
 
-    return Articulo(fecha, titulo, descripcion, entradilla, secciones, actualizado)
+    titular = f"Gasolina y diésel hoy, {_dia_mes(fecha)}"
+    medias = {k: v["media"] for k, v in nac.items() if k in ("diesel", "g95", "g98", "glp")}
+    return Articulo(fecha, titulo, descripcion, entradilla, secciones, actualizado,
+                    titular=titular, gancho=gancho[:1].upper() + gancho[1:], medias=medias)

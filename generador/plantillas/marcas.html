@@ -1,24 +1,27 @@
 {% extends "base.html" %}
 {% import "macros.html" as mc with context %}
-{% block titulo %}Gasolineras más baratas por marca: ranking de precios hoy{% endblock %}
-{% block descripcion %}¿Qué marca de gasolinera es más barata? Precio medio del diésel y la gasolina 95 en Repsol, Cepsa (Moeve), Galp, Ballenoil, Plenergy, Shell y más, con datos oficiales de hoy.{% endblock %}
+{% block titulo %}¿Qué gasolinera es más barata? Ranking de marcas hoy{% endblock %}
+{% block descripcion %}Precio medio del diésel y la gasolina en Repsol, Moeve (Cepsa), Galp, Ballenoil, Plenergy, Shell y las demás cadenas, con datos oficiales de hoy.{% endblock %}
 {% block contenido %}
 {{ mc.migas([("Marcas", none)]) }}
-<h1>¿Qué gasolinera es más barata? Ranking por marcas</h1>
-{{ mc.sello() }}
-<p>Precio medio de cada cadena con al menos 20 gasolineras en España, ordenado por el precio del diésel. La media nacional está en {{ nac.diesel.media|precio }} (diésel) y {{ nac.g95.media|precio }} (gasolina 95).</p>
-<div class="tabla-envoltura">
-<table class="tabla ordenable">
-  <thead><tr><th scope="col">Marca</th><th scope="col" class="num" data-orden="1">Diésel</th><th scope="col" class="num" data-orden="2">Gasolina 95</th><th scope="col" class="num" data-orden="3">Gasolineras</th></tr></thead>
-  <tbody>
-  {% for marca, r in lista %}
-  <tr><td><a href="{{ url(marca.ruta) }}">{{ marca.nombre }}</a></td>
-  <td class="num" data-valor="{{ r.diesel.media or 99 }}">{{ r.diesel.media|precio }}</td>
-  <td class="num" data-valor="{{ r.g95.media or 99 }}">{{ r.g95.media|precio }}</td>
-  <td class="num" data-valor="{{ marca.estaciones|length }}">{{ marca.estaciones|length|numero(0) }}</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="titulo">
+  <h1>¿Qué gasolinera es más barata?</h1>
+  <p class="subtitulo">Precio medio de las {{ lista|length }} cadenas con al menos 20 gasolineras · {{ mc.frescura() }}</p>
 </div>
-<p class="nota">Las medias mezclan gasolineras de zonas con precios distintos (por ejemplo, Canarias), así que compara también por provincia.</p>
+{{ mc.selector() }}
+<section class="bloque" aria-labelledby="marcas-t">
+  <div class="bloque-cabecera">
+    <h2 id="marcas-t">Marcas, de más barata a más cara</h2>
+    {% for c in UI %}<p class="nota" data-c="{{ c }}">Media de España: {{ nac[c].media|precio }}</p>{% endfor %}
+  </div>
+  <ul class="filas columnas-2" id="marcas-lista" data-orden-auto>
+  {% for x in lista %}
+    <li class="fila" data-tiene="{% for c in UI %}{% if x.medias[c] %}{{ c }} {% endif %}{% endfor %}"{% for c in UI %}{% if x.medias[c] %} data-{{ c }}="{{ x.medias[c] }}"{% endif %}{% endfor %}>
+      <a href="{{ url(x.marca.ruta) }}"><strong translate="no">{{ x.marca.nombre }}</strong><span>{{ x.n|numero(0) }} gasolineras</span></a>
+      <span class="fila-precio">{% for c in UI %}<span data-c="{{ c }}">{% if x.medias[c] %}{{ x.medias[c]|cifra }}<small>{{ (x.medias[c] - nac[c].media)|cts }} frente a la media</small>{% else %}<span class="sin-dato">No vende</span>{% endif %}</span>{% endfor %}</span>
+    </li>
+  {% endfor %}
+  </ul>
+  <p class="nota">Las medias mezclan zonas con precios distintos (Canarias, por ejemplo), así que compara también en tu provincia.</p>
+</section>
 {% endblock %}

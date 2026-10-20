@@ -30,6 +30,17 @@ COMBUSTIBLES = [
     Combustible("adblue", "AdBlue", "AdBlue", "Precio Adblue"),
 ]
 POR_CLAVE = {c.clave: c for c in COMBUSTIBLES}
+FEMENINO = {"g95", "g98"}  # la gasolina; el diésel, el GLP, el AdBlue
+
+
+def con_articulo(clave: str, adjetivo: str = "") -> str:
+    """con_articulo("g95", "barat") -> "la gasolina 95 más barata"; sin adjetivo, solo el artículo."""
+    c = POR_CLAVE[clave]
+    fem = clave in FEMENINO
+    texto = f"{'la' if fem else 'el'} {c.nombre_largo}"
+    if adjetivo:
+        texto += f" más {adjetivo}{'a' if fem else 'o'}"
+    return texto
 PRINCIPALES = ["diesel", "g95"]
 
 # Canarias, Ceuta y Melilla tienen impuestos distintos: se separan en los rankings.

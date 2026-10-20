@@ -3,3 +3,6 @@ __pycache__/
 .pytest_cache/
 publico/
 *.pyc
+.taste-skill/
+.claude/skills/
+docs/referencias-diseno/

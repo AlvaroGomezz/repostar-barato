@@ -2,14 +2,16 @@
 {% block titulo %}Página no encontrada · {{ sitio.nombre }}{% endblock %}
 {% block cabeza %}<meta name="robots" content="noindex">{% endblock %}
 {% block contenido %}
-<section class="portada">
-  <h1>No encontramos esta página</h1>
-  <p>Busca tu municipio para ver sus gasolineras:</p>
-  <form class="buscador" role="search" onsubmit="return false">
-    <label for="q" class="oculto">Busca tu municipio</label>
-    <input id="q" type="search" placeholder="Escribe tu pueblo o ciudad…" autocomplete="off" data-buscador>
-    <ul class="sugerencias" data-sugerencias hidden></ul>
-  </form>
-  <p><a href="{{ url('/') }}">Volver a la portada</a></p>
+<section class="portada" aria-labelledby="t404">
+  <h1 id="t404">No encontramos esta página</h1>
+  <p class="subtitulo">Busca tu municipio para ver los precios de sus gasolineras.</p>
+  <div class="portada-acciones">
+    <form class="buscador grande" role="search" onsubmit="return false">
+      <label class="oculto" for="q">Busca tu municipio</label>
+      <input id="q" name="q" type="search" placeholder="Tu municipio, p. ej. Alcobendas…" autocomplete="off" spellcheck="false" data-buscador role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug-404">
+      <ul class="sugerencias" id="sug-404" role="listbox" aria-label="Municipios" data-sugerencias hidden></ul>
+    </form>
+  </div>
+  <p class="nota"><a href="{{ url('/') }}">Volver a la portada</a></p>
 </section>
 {% endblock %}

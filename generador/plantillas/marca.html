@@ -1,34 +1,42 @@
 {% extends "base.html" %}
 {% import "macros.html" as mc with context %}
 {% block titulo %}Precio {{ marca.nombre }} hoy: diésel y gasolina en sus {{ marca.estaciones|length }} gasolineras{% endblock %}
-{% block descripcion %}Precio medio hoy en {{ marca.nombre }}: diésel {{ res.diesel.media|precio }} y gasolina 95 {{ res.g95.media|precio }}. Las gasolineras {{ marca.nombre }} más baratas de España.{% endblock %}
+{% block descripcion %}Precio medio hoy en {{ marca.nombre }}: diésel {{ info.diesel.r.media|precio }} y gasolina 95 {{ info.g95.r.media|precio }}. Las gasolineras {{ marca.nombre }} más baratas de España.{% endblock %}
 {% block contenido %}
 {{ mc.migas([("Marcas", "/marcas/"), (marca.nombre, none)]) }}
-<h1>Precio de {{ marca.nombre }} hoy</h1>
-{{ mc.sello() }}
-<section class="tarjetas">
-  {% for clave in ["diesel", "g95", "g98", "glp"] %}{% set r = res[clave] %}{% if r.n %}
-  <div class="tarjeta">
-    <span class="tarjeta-titulo">{{ C[clave].nombre }}</span>
-    <span class="tarjeta-precio">{{ r.media|precio }}</span>
-    <span class="tarjeta-detalle">media en {{ r.n }} gasolineras</span>
-    {% if nac[clave].media %}{% set dif = r.media - nac[clave].media %}
-    <span class="tarjeta-detalle">{% if dif > 0.0005 %}<span class="sube">{{ dif|centimos }} sobre la media</span>{% elif dif < -0.0005 %}<span class="baja">{{ dif|centimos }} bajo la media</span>{% else %}en la media de España{% endif %}</span>
-    {% endif %}
-  </div>
-  {% endif %}{% endfor %}
-</section>
-<div class="dos-columnas">
-  {% if top_d %}<section class="bloque"><h2>{{ marca.nombre }} con el diésel más barato</h2>{{ mc.lista_top(top_d, "diesel", mostrar_prov=true) }}</section>{% endif %}
-  {% if top_g %}<section class="bloque"><h2>{{ marca.nombre }} con la gasolina 95 más barata</h2>{{ mc.lista_top(top_g, "g95", mostrar_prov=true) }}</section>{% endif %}
+<div class="titulo">
+  <h1>Precio de <span translate="no">{{ marca.nombre }}</span> hoy</h1>
+  <p class="subtitulo">{{ marca.estaciones|length|numero(0) }} gasolineras en {{ provincias|length }} provincias · {{ mc.frescura() }}</p>
 </div>
-<section class="bloque">
-  <h2>Gasolineras {{ marca.nombre }} por provincia</h2>
-  <div class="tabla-envoltura">
-  <table class="tabla ordenable">
-    <thead><tr><th scope="col">Provincia</th><th scope="col" class="num" data-orden="1">Gasolineras</th><th scope="col" class="num" data-orden="2">Diésel desde</th></tr></thead>
-    <tbody>{% for p, n, minimo in provincias %}<tr><td><a href="{{ url(p.ruta) }}">{{ p.nombre }}</a></td><td class="num" data-valor="{{ n }}">{{ n }}</td><td class="num" data-valor="{{ minimo or 99 }}">{{ minimo|precio }}</td></tr>{% endfor %}</tbody>
-  </table>
-  </div>
+{{ mc.selector() }}
+<section class="bloque" aria-labelledby="media-t">
+    <h2 id="media-t">Precio medio</h2>
+    {% for c in UI %}{% set r = info[c].r %}
+    <div data-c="{{ c }}">
+      {% if r.n %}
+      <p class="respuesta-precio">{{ r.media|cifra }}</p>
+      {% set dif = r.media - nac[c].media %}
+      <p class="frase">{% if dif > 0.0005 %}{{ dif|cts }} más que la media de España ({{ nac[c].media|precio }}){% elif dif < -0.0005 %}{{ (-dif)|cts|replace("+", "") }} menos que la media de España ({{ nac[c].media|precio }}){% else %}En la media de España{% endif %}, en {{ r.n }} gasolineras.</p>
+      {{ info[c].escalera }}
+      {% else %}
+      <p class="vacio">{{ marca.nombre }} no vende {{ C[c].nombre_largo }}.</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+</section>
+<section class="bloque" aria-labelledby="top-t">
+  <h2 id="top-t">Sus 10 gasolineras más baratas</h2>
+  <div class="ranking-2">{{ mc.ranking(info, "top", mostrar_prov=true) }}</div>
+</section>
+<section class="bloque" aria-labelledby="prov-t">
+  <h2 id="prov-t">{{ marca.nombre }} por provincia</h2>
+  <ul class="filas columnas-2" id="marca-prov">
+  {% for x in provincias %}
+    <li class="fila" data-tiene="{% for c in UI %}{% if x.min[c] is not none %}{{ c }} {% endif %}{% endfor %}"{% for c in UI %}{% if x.min[c] is not none %} data-{{ c }}="{{ x.min[c] }}"{% endif %}{% endfor %}>
+      <a href="{{ url(x.p.ruta) }}"><strong>{{ x.p.nombre }}</strong><span>{{ x.n }} gasolinera{{ "s" if x.n != 1 }}</span></a>
+      <span class="fila-precio">{% for c in UI %}<span data-c="{{ c }}">{% if x.min[c] is not none %}<span class="fila-desde">desde</span> {{ x.min[c]|cifra }}{% else %}<span class="sin-dato">—</span>{% endif %}</span>{% endfor %}</span>
+    </li>
+  {% endfor %}
+  </ul>
 </section>
 {% endblock %}

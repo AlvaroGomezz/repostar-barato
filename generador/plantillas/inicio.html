@@ -1,94 +1,101 @@
 {% extends "base.html" %}
 {% import "macros.html" as mc with context %}
-{% block titulo %}Precio de la gasolina y el diésel hoy en España · Gasolineras más baratas{% endblock %}
-{% block descripcion %}Precio medio hoy: diésel {{ nac.diesel.media|precio }}/l y gasolina 95 {{ nac.g95.media|precio }}/l. Compara {{ n_estaciones|numero(0) }} gasolineras de España con precios oficiales actualizados cada pocas horas.{% endblock %}
+{% block titulo %}Precio de la gasolina y el diésel hoy · Gasolineras más baratas de España{% endblock %}
+{% block descripcion %}Precio medio hoy: diésel {{ info.diesel.nac.media|precio }}/l y gasolina 95 {{ info.g95.nac.media|precio }}/l. Busca la gasolinera más barata de tu municipio o cerca de ti entre {{ n_estaciones|numero(0) }} gasolineras.{% endblock %}
 {% block cabeza %}
 <script type="application/ld+json">{{ {"@context": "https://schema.org", "@type": "WebSite", "name": sitio.nombre, "url": abs_url("/")}|tojson }}</script>
 {% endblock %}
 {% block contenido %}
-<section class="portada">
-  <h1>Precio de la gasolina y el diésel hoy</h1>
-  {{ mc.sello() }}
-  <form class="buscador" role="search" onsubmit="return false">
-    <label for="q" class="oculto">Busca tu municipio</label>
-    <input id="q" type="search" placeholder="Escribe tu pueblo o ciudad…" autocomplete="off" data-buscador>
-    <ul class="sugerencias" data-sugerencias hidden></ul>
-  </form>
-  <button class="boton" type="button" data-cerca>📍 Gasolineras más baratas cerca de mí</button>
-  <div class="cerca" data-cerca-resultado hidden></div>
+<section class="portada" aria-labelledby="portada-t">
+  <h1 id="portada-t">Encuentra la gasolinera más barata</h1>
+  <p class="subtitulo">{{ n_estaciones|numero(0) }} gasolineras de España con precios oficiales · {{ mc.frescura() }}</p>
+  <div class="portada-acciones">
+    <form class="buscador grande" role="search" onsubmit="return false">
+      <label class="oculto" for="q">Busca tu municipio</label>
+      <svg class="buscador-icono" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <input id="q" name="q" type="search" placeholder="Tu municipio, p. ej. Alcobendas…" autocomplete="off" spellcheck="false" data-buscador role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug-portada">
+      <ul class="sugerencias" id="sug-portada" role="listbox" aria-label="Municipios" data-sugerencias hidden></ul>
+    </form>
+    <span class="portada-o">o</span>
+    <button class="boton" type="button" data-cerca>
+      <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M10 18s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10Z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="10" cy="8" r="2.2" fill="currentColor"/></svg>
+      Usar mi ubicación
+    </button>
+  </div>
 </section>
 
-<section class="tarjetas">
-  {% for clave in ["diesel", "g95", "g98", "glp"] %}{% set r = nac[clave] %}{% if r.n %}
-  <div class="tarjeta">
-    <span class="tarjeta-titulo">{{ C[clave].nombre }}</span>
-    <span class="tarjeta-precio">{{ r.media|precio }}</span>
-    {% set v = variacion(clave) %}
-    <span class="tarjeta-detalle">media de España{% if v is not none %} · {% if v > 0.0005 %}<span class="sube">▲ {{ v|centimos }}</span>{% elif v < -0.0005 %}<span class="baja">▼ {{ v|centimos }}</span>{% else %}= igual que ayer{% endif %}{% endif %}</span>
-    {% if clave in ["diesel", "g95"] %}<span class="tarjeta-detalle">Depósito de {{ deposito }} l: {{ (r.media * deposito)|precio(2) }}</span>{% endif %}
+{# Los precios medios hacen de selector de combustible. #}
+<nav class="kpis selector-kpis" aria-label="Combustible">
+  {% for c in UI %}{% set i = info[c] %}
+  <a href="?c={{ c }}" data-elegir="{{ c }}" class="kpi">
+    <span class="kpi-etiqueta">{{ C[c].nombre }}</span>
+    <span class="kpi-valor">{{ i.nac.media|cifra }}</span>
+    <span class="kpi-delta">{% if i.var is none %}media de España{% elif i.var > 0.0005 %}<span class="sube">▲ {{ i.var|cts }}</span> desde ayer{% elif i.var < -0.0005 %}<span class="baja">▼ {{ i.var|cts }}</span> desde ayer{% else %}igual que ayer{% endif %}</span>
+  </a>
+  {% endfor %}
+</nav>
+
+<section class="bloque" data-cerca-bloque hidden aria-labelledby="cerca-t">
+  <div class="bloque-cabecera">
+    <h2 id="cerca-t">Las más baratas a menos de 10 km de ti</h2>
+    <button type="button" class="boton-sec" data-cerca-cerrar>Cerrar</button>
   </div>
-  {% endif %}{% endfor %}
+  <div data-cerca-resultado aria-live="polite"></div>
+</section>
+
+<div class="rejilla-2">
+  <section class="bloque" aria-labelledby="top-t">
+    <h2 id="top-t">Las más baratas de la Península hoy</h2>
+    {{ mc.ranking(info, "top", mostrar_prov=true) }}
+  </section>
+  <div class="columna">
+    {% for c in UI %}{% set i = info[c] %}
+    <section class="bloque" data-c="{{ c }}" aria-label="Provincias">
+      <h2>Por provincias</h2>
+      {% if i.prov_barata %}
+      <p class="frase">La más barata es <a href="{{ url(i.prov_barata.p.ruta) }}">{{ i.prov_barata.p.nombre }}</a>, con una media de <b class="dato">{{ i.prov_barata.medias[c]|precio }}</b>; la más cara, <a href="{{ url(i.prov_cara.p.ruta) }}">{{ i.prov_cara.p.nombre }}</a>, con {{ i.prov_cara.medias[c]|precio }}.</p>
+      <p class="nota">Sin Canarias, Ceuta y Melilla, que tienen impuestos más bajos.</p>
+      {% endif %}
+    </section>
+    {% endfor %}
+    {{ mc.evolucion(info, "Precio medio en la Península") }}
+  </div>
+</div>
+
+<section class="bloque" id="provincias" aria-labelledby="prov-t">
+  <div class="bloque-cabecera">
+    <h2 id="prov-t">Precio medio en las 52 provincias</h2>
+    <div class="herramientas">
+      <button type="button" class="boton-sec" data-ordenar-lista="provincias-lista" aria-pressed="false">Ordenar por precio</button>
+    </div>
+  </div>
+  <ul class="filas columnas-2" id="provincias-lista">
+  {% for x in provincias %}
+    <li class="fila" data-tiene="{% for c in UI %}{% if x.medias[c] %}{{ c }} {% endif %}{% endfor %}"{% for c in UI %}{% if x.medias[c] %} data-{{ c }}="{{ x.medias[c] }}"{% endif %}{% endfor %}>
+      <a href="{{ url(x.p.ruta) }}"><strong>{{ x.p.nombre }}</strong><span>{{ x.n|numero(0) }} gasolineras</span></a>
+      <span class="fila-precio">{% for c in UI %}<span data-c="{{ c }}">{% if x.medias[c] %}{{ x.medias[c]|cifra }}{% else %}<span class="sin-dato">—</span>{% endif %}</span>{% endfor %}</span>
+    </li>
+  {% endfor %}
+  </ul>
 </section>
 
 {% if noticias %}
-<section class="bloque destacado">
-  <span class="antetitulo">Noticia de hoy</span>
-  <h2><a href="{{ url(noticias[0].ruta) }}">{{ noticias[0].titulo }}</a></h2>
-  <p>{{ noticias[0].entradilla }}</p>
-</section>
-{% endif %}
-
-{% if grafico %}
-<section class="bloque">
-  <h2>Evolución del precio medio en España</h2>
-  {{ mc.leyenda() }}
-  {{ grafico }}
-</section>
-{% endif %}
-
-<div class="dos-columnas">
-  <section class="bloque">
-    <h2>Diésel más barato de la Península</h2>
-    {{ mc.lista_top(top_d, "diesel", mostrar_prov=true) }}
-  </section>
-  <section class="bloque">
-    <h2>Gasolina 95 más barata de la Península</h2>
-    {{ mc.lista_top(top_g, "g95", mostrar_prov=true) }}
-  </section>
-</div>
-
-<div class="dos-columnas">
-  <section class="bloque">
-    <h2>Provincias con el diésel más barato</h2>
-    <ol class="ranking simple">{% for p, r in baratas %}<li><span class="ranking-precio">{{ r.diesel.media|precio }}</span> <a href="{{ url(p.ruta) }}">{{ p.nombre }}</a></li>{% endfor %}</ol>
-  </section>
-  <section class="bloque">
-    <h2>Provincias con el diésel más caro</h2>
-    <ol class="ranking simple">{% for p, r in caras %}<li><span class="ranking-precio">{{ r.diesel.media|precio }}</span> <a href="{{ url(p.ruta) }}">{{ p.nombre }}</a></li>{% endfor %}</ol>
-    <p class="nota">Sin contar Canarias, Ceuta y Melilla, que tienen impuestos más bajos.</p>
-  </section>
-</div>
-
-<section class="bloque" id="provincias">
-  <h2>Precio medio por provincia</h2>
-  <div class="tabla-envoltura">
-  <table class="tabla ordenable">
-    <thead><tr><th scope="col">Provincia</th><th scope="col" class="num" data-orden="1">Diésel</th><th scope="col" class="num" data-orden="2">Gasolina 95</th><th scope="col" class="num" data-orden="3">Gasolineras</th></tr></thead>
-    <tbody>
-    {% for p, r in provincias %}
-      <tr><td><a href="{{ url(p.ruta) }}">{{ p.nombre }}</a></td>
-      <td class="num" data-valor="{{ r.diesel.media or 99 }}">{{ r.diesel.media|precio }}</td>
-      <td class="num" data-valor="{{ r.g95.media or 99 }}">{{ r.g95.media|precio }}</td>
-      <td class="num" data-valor="{{ p.estaciones|length }}">{{ p.estaciones|length|numero(0) }}</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
+<section class="bloque" aria-labelledby="noticias-t">
+  <div class="bloque-cabecera">
+    <h2 id="noticias-t">Noticias del precio, día a día</h2>
+    <a class="enlace-sec" href="{{ url('/noticias/') }}">Ver todas</a>
   </div>
+  <ul class="noticias">
+  {% for a in noticias %}
+    <li><a href="{{ url(a.ruta) }}"><time datetime="{{ a.fecha.isoformat() }}">{{ a.fecha|fecha_larga }}</time><span>{{ a.titular }}: {{ a.gancho|lower }}</span></a></li>
+  {% endfor %}
+  </ul>
 </section>
+{% endif %}
 
-<section class="bloque texto">
-  <h2>Cómo funciona</h2>
-  <p>Todas las gasolineras de España están obligadas a comunicar sus precios al Ministerio para la Transición Ecológica. {{ sitio.nombre }} recoge esos datos oficiales varias veces al día y los ordena para que encuentres en segundos la gasolinera más barata de tu municipio, de tu provincia o cerca de donde estás. Ahora mismo comparamos {{ n_estaciones|numero(0) }} gasolineras de {{ n_municipios|numero(0) }} municipios.</p>
-  <p>La diferencia entre la gasolinera más cara y la más barata de una misma ciudad suele superar los 10 céntimos por litro: en un depósito de {{ deposito }} litros son más de 5 € cada vez que repostas.</p>
+<section class="bloque texto" aria-labelledby="como-t">
+  <h2 id="como-t">De dónde salen los precios</h2>
+  <p>Todas las gasolineras de España están obligadas a comunicar sus precios al Ministerio para la Transición Ecológica. {{ sitio.nombre }} recoge esos datos oficiales varias veces al día y los ordena para que encuentres en segundos la gasolinera más barata de tu municipio, de tu provincia o cerca de donde estás.</p>
+  <p>Entre la gasolinera más cara y la más barata de una misma ciudad suele haber más de 10 céntimos por litro: en un depósito de {{ deposito }} litros, más de 5 € cada vez que repostas.</p>
 </section>
 {% endblock %}

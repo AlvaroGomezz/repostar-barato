@@ -10,9 +10,10 @@
 {% endblock %}
 {% block contenido %}
 {{ mc.migas([("Noticias", "/noticias/"), (a.fecha|fecha_media, none)]) }}
+<div class="rejilla-articulo">
 <article class="articulo">
-  <h1>{{ a.titulo }}</h1>
-  <p class="sello">{{ sitio.nombre }} · {{ a.fecha|fecha_larga }} · datos de las {{ a.actualizado|hora }}</p>
+  <h1>{{ a.titular }}</h1>
+  <p class="subtitulo"><span>{{ a.gancho }} ·</span><time datetime="{{ a.fecha.isoformat() }}">{{ a.fecha|fecha_larga }} ·</time><span>datos oficiales de las {{ a.actualizado|hora }}</span></p>
   <p class="entradilla">{{ a.entradilla }}</p>
   {% for s in a.secciones %}
   <section>
@@ -21,16 +22,37 @@
     {% if s.tabla %}
     <div class="tabla-envoltura">
     <table class="tabla">
-      <thead><tr>{% for c in s.tabla.cabecera %}<th scope="col"{% if not loop.first %} class="num"{% endif %}>{{ c }}</th>{% endfor %}</tr></thead>
-      <tbody>{% for fila in s.tabla.filas %}<tr>{% for celda in fila %}<td{% if loop.last or (loop.index > 1 and s.tabla.cabecera[0] == "Provincia") %} class="num"{% endif %}>{% if celda is string %}{{ celda }}{% else %}<a href="{{ url(celda[1]) }}">{{ celda[0] }}</a>{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody>
+      <thead><tr>{% for c in s.tabla.cabecera %}<th scope="col"{% if c in ["Diésel", "Gasolina 95", "Gasolineras", "Precio"] %} class="num"{% endif %}>{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for fila in s.tabla.filas %}<tr>{% for celda in fila %}{% set h = s.tabla.cabecera[loop.index0] %}<td{% if h in ["Diésel", "Gasolina 95", "Gasolineras", "Precio"] %} class="num"{% endif %}>{% if celda is string %}{{ celda }}{% else %}<a href="{{ url(celda[1]) }}">{{ celda[0] }}</a>{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody>
     </table>
     </div>
     {% endif %}
   </section>
   {% endfor %}
-  <nav class="paginacion">
+  <nav class="paginacion" aria-label="Otros días">
     {% if anterior %}<a href="{{ url(anterior.ruta) }}">← {{ anterior.fecha|fecha_media }}</a>{% else %}<span></span>{% endif %}
     {% if siguiente %}<a href="{{ url(siguiente.ruta) }}">{{ siguiente.fecha|fecha_media }} →</a>{% endif %}
   </nav>
+  <p class="nota"><a href="{{ url('/') }}">Busca la gasolinera más barata de tu municipio</a></p>
 </article>
+<aside class="lateral" aria-label="Busca tu gasolinera">
+  <section class="bloque">
+    <h2>Busca la más barata de tu municipio</h2>
+    <form class="buscador" role="search" onsubmit="return false">
+      <label class="oculto" for="q-lateral">Busca tu municipio</label>
+      <input id="q-lateral" name="q" type="search" placeholder="Tu municipio…" autocomplete="off" spellcheck="false" data-buscador role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug-lateral">
+      <ul class="sugerencias" id="sug-lateral" role="listbox" aria-label="Municipios" data-sugerencias hidden></ul>
+    </form>
+  </section>
+  <section class="bloque">
+    <h2>Precio medio en España</h2>
+    <ul class="filas">
+    {% for c in UI %}{% if a.medias.get(c) %}
+      <li class="fila"><span>{{ C[c].nombre }}</span><span class="fila-precio">{{ a.medias[c]|cifra }}</span></li>
+    {% endif %}{% endfor %}
+    </ul>
+    <p class="nota">Datos del {{ a.fecha|fecha_media }}, {{ a.actualizado|hora }}</p>
+  </section>
+</aside>
+</div>
 {% endblock %}

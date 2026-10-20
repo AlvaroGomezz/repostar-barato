@@ -5,64 +5,76 @@
 {% block descripcion %}Precios actualizados el {{ actualizado|fecha_corta }} a las {{ actualizado|hora }} de {% if n > 1 %}las {{ n }} gasolineras{% else %}la gasolinera{% endif %} de {{ m.nombre }} ({{ m.provincia.nombre }}).{% if res.diesel.mas_barata %} Diésel más barato: {{ res.diesel.mas_barata.rotulo }} a {{ res.diesel.minimo|precio }}.{% endif %} Compara gasolina 95, 98 y GLP.{% endblock %}
 {% block contenido %}
 {{ mc.migas([(m.provincia.nombre, m.provincia.ruta), (m.nombre, none)]) }}
-<h1>Gasolinera{% if n > 1 %}s más baratas{% else %} más barata{% endif %} en {{ m.nombre }}</h1>
-{{ mc.sello() }}
+<div class="titulo">
+  <h1>Gasolineras en {{ m.nombre }}</h1>
+  <p class="subtitulo">{{ n }} gasolinera{{ "s" if n != 1 }} · {{ m.provincia.nombre }} · {{ mc.frescura() }}</p>
+</div>
 
-<section class="tarjetas">
-  {% for clave in ["diesel", "g95"] %}{% set r = res[clave] %}{% if r.n %}
-  <div class="tarjeta">
-    <span class="tarjeta-titulo">{{ C[clave].nombre }} más {{ "barato" if clave == "diesel" else "barata" }}</span>
-    <span class="tarjeta-precio">{{ r.minimo|precio }}</span>
-    <span class="tarjeta-detalle">{{ r.mas_barata.rotulo }} · {{ r.mas_barata.direccion }}</span>
-    {% if res_p[clave].media %}{% set dif = r.media - res_p[clave].media %}
-    <span class="tarjeta-detalle">Media aquí {{ r.media|precio }} · {% if dif > 0.0005 %}<span class="sube">{{ dif|centimos }} más que la provincia</span>{% elif dif < -0.0005 %}<span class="baja">{{ dif|centimos }} menos que la provincia</span>{% else %}igual que la provincia{% endif %}</span>
+{{ mc.selector() }}
+
+<div class="rejilla-municipio">
+<section class="panel zona-respuesta" aria-label="La más barata">
+  {{ mc.respuesta(info, "en " ~ m.nombre) }}
+  {% if n > 1 %}{{ mc.litros() }}{% endif %}
+</section>
+
+<section class="bloque zona-lista" aria-labelledby="lista-t">
+  <div class="bloque-cabecera">
+    <h2 id="lista-t">{% if n > 1 %}Las {{ n }} gasolineras, de más barata a más cara{% else %}La gasolinera de {{ m.nombre }}{% endif %}</h2>
+    {% if n > 1 %}
+    <div class="herramientas">
+      <button type="button" class="boton-sec" data-cercania aria-pressed="false">Ordenar por cercanía</button>
+      {% if n24 and n24 < n %}<button type="button" class="boton-sec" data-solo24 aria-pressed="false">Solo 24 horas</button>{% endif %}
+    </div>
     {% endif %}
   </div>
-  {% endif %}{% endfor %}
+  <p class="aviso" data-aviso-cercania hidden aria-live="polite"></p>
+  <ol class="estaciones" data-lista>
+  {% for f in filas %}{% set e = f.e %}
+    <li class="estacion" data-tiene="{{ f.tiene }}"{% if e.abierta_24h %} data-24h{% endif %}{% if e.lat is not none %} data-lat="{{ e.lat }}" data-lon="{{ e.lon }}"{% endif %}{% for c in UI %}{% if f.precios[c] is not none %} data-{{ c }}="{{ f.precios[c] }}"{% endif %}{% endfor %}>
+      <div class="estacion-id">
+        <strong translate="no">{{ e.rotulo }}</strong>
+        <span>{{ e.direccion }}</span>
+        <span class="estacion-meta">{% if e.abierta_24h %}Abierta 24 horas{% else %}{{ e.horario }}{% endif %}<span class="distancia" data-distancia></span></span>
+      </div>
+      <div class="estacion-precio">
+        {% for c in UI %}
+        <span data-c="{{ c }}"{% if f.barata[c] %} class="es-barata"{% endif %}>
+          {% if f.precios[c] is not none %}{{ f.precios[c]|cifra }}<small>{% if f.barata[c] %}la más barata{% elif f.dif[c] is not none and n > 1 %}{{ f.dif[c]|cts }}{% endif %}</small>{% else %}<span class="sin-dato">No vende</span>{% endif %}
+        </span>
+        {% endfor %}
+      </div>
+      {% if e.mapa %}<a class="estacion-ir" href="{{ e.mapa }}" target="_blank" rel="nofollow noopener" aria-label="Cómo llegar a {{ e.rotulo }}, {{ e.direccion }}">Ir</a>{% else %}<span></span>{% endif %}
+    </li>
+  {% endfor %}
+  </ol>
+  <details class="todos">
+    <summary>Ver todos los combustibles en una tabla</summary>
+    <div class="tabla-envoltura">
+      <table class="tabla">
+        <thead><tr><th scope="col">Gasolinera</th>{% for c in presentes %}<th scope="col" class="num">{{ c.nombre }}</th>{% endfor %}</tr></thead>
+        <tbody>
+        {% for f in filas %}<tr><td>{{ f.e.rotulo }}<span class="celda-sub">{{ f.e.direccion }}</span></td>{% for c in presentes %}<td class="num">{{ f.e.precios.get(c.clave)|precio }}</td>{% endfor %}</tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
 </section>
 
-{% if res.diesel.n > 1 and res.diesel.maximo > res.diesel.minimo %}
-<p class="aviso-ahorro">💡 Elegir la gasolinera más barata de {{ m.nombre }} en lugar de la más cara te ahorra <strong>{{ ((res.diesel.maximo - res.diesel.minimo) * deposito)|precio(2) }}</strong> en un depósito de {{ deposito }} litros de diésel.</p>
-{% endif %}
-
-<section class="bloque">
-  <h2>Precios de {% if n > 1 %}todas las gasolineras{% else %}la gasolinera{% endif %} de {{ m.nombre }}</h2>
-  {% if n > 1 %}<p class="nota">Ordenadas por precio del diésel. Pulsa en otra columna para ordenar por ese combustible.</p>{% endif %}
-  {{ mc.tabla_estaciones(filas, columnas, deposito) }}
+<section class="bloque zona-cerca" aria-labelledby="cerca-t">
+  <h2 id="cerca-t">Más barato a menos de 15 km</h2>
+  {{ mc.ranking(info, "cerca", dist=dist, vacio="No hay otras gasolineras a menos de 15 km que vendan este combustible.") }}
 </section>
-
-{% if cerca_d or cerca_g %}
-<div class="dos-columnas">
-  {% if cerca_d %}
-  <section class="bloque">
-    <h2>Diésel más barato cerca de {{ m.nombre }}</h2>
-    {{ mc.lista_top(cerca_d, "diesel", dist=dist) }}
-  </section>
-  {% endif %}
-  {% if cerca_g %}
-  <section class="bloque">
-    <h2>Gasolina 95 más barata cerca de {{ m.nombre }}</h2>
-    {{ mc.lista_top(cerca_g, "g95", dist=dist) }}
-  </section>
-  {% endif %}
+{{ mc.evolucion(info, "Evolución del precio medio", clase="zona-evolucion") }}
 </div>
-{% endif %}
-
-{% if grafico %}
-<section class="bloque">
-  <h2>Evolución del precio medio en {{ m.nombre }}</h2>
-  {{ mc.leyenda() }}
-  {{ grafico }}
-</section>
-{% endif %}
 
 {{ mc.faq(faq) }}
 
 {% if vecinos %}
-<section class="bloque">
-  <h2>Municipios cercanos</h2>
-  <p class="enlaces-lista">{% for v in vecinos %}<a href="{{ url(v.ruta) }}">{{ v.nombre }}</a>{% endfor %}</p>
-  <p><a href="{{ url(m.provincia.ruta) }}">Ver todas las gasolineras de {{ m.provincia.nombre }} →</a></p>
+<section class="bloque" aria-labelledby="vecinos-t">
+  <h2 id="vecinos-t">Municipios cercanos</h2>
+  <p class="enlaces">{% for v in vecinos %}<a href="{{ url(v.ruta) }}">{{ v.nombre }}</a>{% endfor %}</p>
+  <p class="nota"><a href="{{ url(m.provincia.ruta) }}">Todas las gasolineras de {{ m.provincia.nombre }}</a></p>
 </section>
 {% endif %}
 {% endblock %}

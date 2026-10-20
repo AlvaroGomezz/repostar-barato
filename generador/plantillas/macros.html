@@ -1,63 +1,103 @@
 {% macro migas(items) %}
-<nav class="migas" aria-label="Ruta">
+<nav class="migas" aria-label="Estás en">
   <a href="{{ url('/') }}">Inicio</a>
-  {% for nombre, r in items %} › {% if r %}<a href="{{ url(r) }}">{{ nombre }}</a>{% else %}<span>{{ nombre }}</span>{% endif %}{% endfor %}
+  {% for nombre, r in items %}<span aria-hidden="true">/</span>{% if r %}<a href="{{ url(r) }}">{{ nombre }}</a>{% else %}<span aria-current="page">{{ nombre }}</span>{% endif %}{% endfor %}
 </nav>
 <script type="application/ld+json">{{ ld_migas(items)|tojson }}</script>
 {% endmacro %}
 
-{% macro sello() %}
-<p class="sello"><span class="punto-vivo"></span> Actualizado el {{ actualizado|fecha_larga }} a las {{ actualizado|hora }}</p>
+{% macro frescura() %}
+<span class="frescura"><span class="punto-vivo" aria-hidden="true"></span>Precios de hoy, {{ actualizado|hora }}</span>
 {% endmacro %}
 
-{% macro tabla_estaciones(filas, columnas, deposito) %}
-<div class="tabla-envoltura">
-<table class="tabla estaciones ordenable">
-  <thead><tr>
-    <th scope="col">Gasolinera</th>
-    {% for c in columnas %}<th scope="col" class="num" data-orden="{{ loop.index }}">{{ C[c].nombre }}</th>{% endfor %}
-  </tr></thead>
-  <tbody>
-  {% for f in filas %}
-    <tr>
-      <td>
-        <strong class="rotulo">{{ f.e.rotulo }}</strong>
-        <span class="dir">{{ f.e.direccion }}{% if f.e.mapa %} · <a href="{{ f.e.mapa }}" rel="nofollow noopener" target="_blank">Cómo llegar</a>{% endif %}</span>
-        <span class="horario">{% if f.e.abierta_24h %}<span class="etiqueta">24 h</span>{% else %}{{ f.e.horario }}{% endif %}</span>
-        {% if f.extras %}<span class="extras">{% for n, p in f.extras %}{{ n }} {{ p|precio }}{% if not loop.last %} · {% endif %}{% endfor %}</span>{% endif %}
-      </td>
-      {% for c, p, barato in f.celdas %}
-      <td class="num precio{% if barato %} barato{% endif %}" data-valor="{{ p if p is not none else 99 }}">{{ p|precio }}</td>
-      {% endfor %}
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+{# Selector de combustible: enlaces con ?c= (funcionan sin JavaScript y se pueden compartir). #}
+{% macro selector(etiqueta="Combustible") %}
+<nav class="selector" aria-label="{{ etiqueta }}">
+  {% for c in UI %}<a href="?c={{ c }}" data-elegir="{{ c }}">{% if c in ["g95", "g98"] %}<span class="largo">Gasolina&nbsp;</span>{{ C[c].nombre[-2:] }}{% else %}{{ C[c].nombre }}{% endif %}</a>{% endfor %}
+</nav>
+{% endmacro %}
+
+{% macro litros() %}
+<div class="litros" role="group" aria-label="Litros que repostas">
+  <span class="litros-txt">Depósito</span>
+  {% for l in [30, 40, 50, 60, 70] %}<button type="button" data-litros="{{ l }}">{{ l }} l</button>{% endfor %}
 </div>
 {% endmacro %}
 
-{% macro lista_top(estaciones, clave, dist=none, mostrar_prov=false) %}
-<ol class="ranking">
-{% for e in estaciones %}
-  <li>
-    <span class="ranking-precio">{{ e.precios[clave]|precio }}</span>
-    <span class="ranking-nombre"><strong>{{ e.rotulo }}</strong> · {{ e.direccion }}</span>
-    <span class="ranking-lugar"><a href="{{ url(e.municipio.ruta) }}">{{ e.municipio.nombre }}</a>{% if mostrar_prov %}, {{ e.municipio.provincia.nombre }}{% endif %}{% if dist and e.id in dist %} · a {{ dist[e.id]|numero(1) }} km{% endif %}</span>
-  </li>
+{# Bloque de respuesta: la más barata de un conjunto de gasolineras para cada combustible. #}
+{% macro respuesta(info, donde, mostrar_mun=false) %}
+{% for c in UI %}{% set i = info[c] %}{% set r = i.r %}
+<div class="respuesta" data-c="{{ c }}">
+  {% if r.n %}
+  <p class="respuesta-etiqueta">{{ C[c].nombre }} más {{ "barato" if c in ["diesel", "glp"] else "barata" }} {{ donde }}</p>
+  <div class="respuesta-cuerpo">
+    <div class="respuesta-datos">
+      <p class="respuesta-precio">{{ r.minimo|cifra }}</p>
+      <p class="respuesta-sitio"><strong translate="no">{{ r.mas_barata.rotulo }}</strong> · {{ r.mas_barata.direccion }}{% if mostrar_mun %}, <a href="{{ url(r.mas_barata.municipio.ruta) }}">{{ r.mas_barata.municipio.nombre }}</a>{% endif %}</p>
+      <p class="respuesta-meta">{% if r.mas_barata.abierta_24h %}Abierta 24 horas{% else %}{{ r.mas_barata.horario }}{% endif %}{% if r.n > 1 and r.minimo == r.maximo %} · todas al mismo precio{% endif %}</p>
+    </div>
+    {% if r.mas_barata.mapa %}<a class="boton" href="{{ r.mas_barata.mapa }}" target="_blank" rel="nofollow noopener">Cómo llegar</a>{% endif %}
+  </div>
+  {% if r.n > 1 and r.maximo > r.minimo %}
+  <p class="hallazgo" data-ahorro data-min="{{ r.minimo }}" data-max="{{ r.maximo }}" data-media="{{ r.media }}">
+    Llenar <b data-l>{{ deposito }}</b> l aquí cuesta <b data-coste="min">{{ (r.minimo * deposito)|precio(2) }}</b>.
+    En la más cara, <span data-coste="max">{{ (r.maximo * deposito)|precio(2) }}</span>: ahorras <b class="dato" data-coste="ahorro">{{ ((r.maximo - r.minimo) * deposito)|precio(2) }}</b>.
+  </p>
+  {% if i.escalera %}
+  <div class="escalera-bloque">
+    <p class="escalera-titulo">Cómo se reparten los {{ r.n }} precios {{ donde }}</p>
+    {{ i.escalera }}
+  </div>
+  {% endif %}
+  {% endif %}
+  {% else %}
+  <p class="respuesta-etiqueta">{{ C[c].nombre }} {{ donde }}</p>
+  <p class="vacio">Ninguna gasolinera {{ donde }} vende {{ C[c].nombre_largo }}.{% if i.cerca %} La más barata en los alrededores es <strong>{{ i.cerca[0].rotulo }}</strong>, en <a href="{{ url(i.cerca[0].municipio.ruta) }}">{{ i.cerca[0].municipio.nombre }}</a>, a {{ i.cerca[0].precios[c]|precio }}.{% endif %}</p>
+  {% endif %}
+</div>
 {% endfor %}
-</ol>
+{% endmacro %}
+
+{# Lista corta de gasolineras con su precio, una por combustible. #}
+{% macro ranking(info, clave_lista="top", dist=none, mostrar_prov=false, vacio="") %}
+{% for c in UI %}{% set lista = info[c][clave_lista] %}
+<div data-c="{{ c }}">
+  {% if lista %}
+  <ol class="ranking">
+  {% for e in lista %}
+    <li>
+      <span class="ranking-id"><strong translate="no">{{ e.rotulo }}</strong><span>{{ e.direccion }}</span><span><a href="{{ url(e.municipio.ruta) }}">{{ e.municipio.nombre }}</a>{% if mostrar_prov %}, {{ e.municipio.provincia.nombre }}{% endif %}{% if dist and e.id in dist %} · a {{ dist[e.id]|numero(1) }} km{% endif %}</span></span>
+      <span class="ranking-precio{% if loop.first %} dato{% endif %}">{{ e.precios[c]|cifra }}</span>
+    </li>
+  {% endfor %}
+  </ol>
+  {% else %}
+  <p class="vacio">{{ vacio or "No hay datos de este combustible." }}</p>
+  {% endif %}
+</div>
+{% endfor %}
+{% endmacro %}
+
+{% macro evolucion(info, titulo, clase="") %}
+{% set hay = [] %}{% for c in UI %}{% if info[c].grafico %}{% set _ = hay.append(c) %}{% endif %}{% endfor %}
+{% if hay %}
+<section class="bloque {{ clase }}" aria-labelledby="evolucion-t">
+  <h2 id="evolucion-t">{{ titulo }}</h2>
+  {% for c in UI %}
+  <div data-c="{{ c }}">
+    {% if info[c].grafico %}<p class="nota">Precio medio de {{ C[c].nombre_largo }}, por día</p>{{ info[c].grafico }}{% else %}<p class="vacio">Aún no hay histórico de {{ C[c].nombre_largo }} para este gráfico.</p>{% endif %}
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
 {% endmacro %}
 
 {% macro faq(preguntas) %}
-<section class="bloque faq">
-  <h2>Preguntas frecuentes</h2>
+<section class="bloque faq" aria-labelledby="faq-t">
+  <h2 id="faq-t">Preguntas frecuentes</h2>
   {% for p, r in preguntas %}
-  <details{% if loop.first %} open{% endif %}><summary>{{ p }}</summary><p>{{ r }}</p></details>
+  <details><summary>{{ p }}</summary><p>{{ r }}</p></details>
   {% endfor %}
 </section>
 <script type="application/ld+json">{{ ld_faq(preguntas)|tojson }}</script>
-{% endmacro %}
-
-{% macro leyenda() %}
-<p class="leyenda"><span class="muestra s1"></span> Diésel <span class="muestra s2"></span> Gasolina 95 <span class="nota">· media diaria</span></p>
 {% endmacro %}

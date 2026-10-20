@@ -4,10 +4,15 @@
 {% block descripcion %}Cada día, la evolución del precio de los carburantes en España con datos oficiales: provincias y gasolineras más baratas.{% endblock %}
 {% block contenido %}
 {{ mc.migas([("Noticias", none)]) }}
-<h1>Precio de los carburantes, día a día</h1>
-<ul class="lista-noticias">
-{% for a in noticias %}
-  <li><time datetime="{{ a.fecha.isoformat() }}">{{ a.fecha|fecha_larga }}</time><a href="{{ url(a.ruta) }}">{{ a.titulo }}</a></li>
-{% endfor %}
-</ul>
+<div class="titulo">
+  <h1>Precio de los carburantes, día a día</h1>
+  <p class="subtitulo">Un resumen cada día con los datos oficiales del Ministerio</p>
+</div>
+<section class="bloque" aria-label="Noticias">
+  <ul class="noticias">
+  {% for a in noticias %}
+    <li><a href="{{ url(a.ruta) }}"><time datetime="{{ a.fecha.isoformat() }}">{{ a.fecha|fecha_larga }}</time><span>{{ a.titular }}: {{ a.gancho|lower }}</span></a></li>
+  {% endfor %}
+  </ul>
+</section>
 {% endblock %}

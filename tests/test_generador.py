@@ -125,3 +125,22 @@ def test_web_completa(bruto, tmp_path):
     assert (salida / "noticias/2026-10-20-precio-gasolina-diesel-hoy/index.html").exists()
     buscar = json.loads((salida / "buscar.json").read_text(encoding="utf-8"))
     assert ["Madrid", "Madrid", "/sub/gasolineras/madrid/madrid/", 22] in buscar
+
+
+def test_interfaz_por_combustible(bruto, tmp_path):
+    """Cada página trae los 4 combustibles y el ahorro calculado; el selector funciona sin JavaScript."""
+    d = interpretar(bruto)
+    sitio = Sitio("Prueba", "lema", "https://ejemplo.es", "", "", "", "", "", "")
+    salida = tmp_path / "publico"
+    Web(d, {}, sitio, salida).construir(historico.instantanea(d))
+    html = (salida / "gasolineras/madrid/madrid/index.html").read_text(encoding="utf-8")
+    for c in ("diesel", "g95", "g98", "glp"):
+        assert f'data-elegir="{c}"' in html and f'href="?c={c}"' in html
+        assert f'class="respuesta" data-c="{c}"' in html
+    # Diésel: 1,450 la más barata y 1,600 la más cara -> 50 l ahorran 7,50 €.
+    assert 'data-min="1.45" data-max="1.6"' in html
+    assert "7,50 €" in html
+    assert 'class="escalera"' in html
+    # Madrid no tiene GLP: lo dice en vez de dejar un hueco.
+    assert "Ninguna gasolinera en Madrid vende GLP" in html
+    assert html.count('class="estacion"') == 22

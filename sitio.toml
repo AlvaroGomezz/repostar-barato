@@ -4,7 +4,7 @@ nombre = "GASVIA"
 lema = "Gasolineras baratas cerca de ti, con los precios oficiales de hoy"
 
 # Dirección pública de la web (sin barra final). Cuando compres un dominio, cámbiala.
-url = "https://alvarogomezz.github.io/repostar-barato"
+url = "https://gasvia.es"
 
 # Google AdSense: el identificador de editor, tipo "ca-pub-1234567890123456".
 # Vacío = no se muestran anuncios.

@@ -67,6 +67,19 @@ En el móvil, la tarjeta de tu zona va justo después del combustible, y los lit
 - **Telegram** (`generador/telegram.py`): aviso diario en un canal (ver docs/GUIA.md, paso 5).
 - **Barra fija en el móvil**: «Cerca de mí», «Buscar», «Ruta», «Calculadora» y «Noticias».
 
+## Noticias de cada día (`generador/articulos.py`, `escribir_dia`)
+
+| Noticia | Cuándo | Qué aporta |
+| --- | --- | --- |
+| Precio de la gasolina y el diésel hoy | cada día | medias, provincias, grandes ciudades, las más baratas |
+| ¿Merece la pena echar gasolina hoy o es mejor esperar? | cada día, desde que hay 3 días de histórico | tendencia, tabla de los últimos días, dónde sube y baja, recomendación |
+| Gasolineras más baratas en [ciudad] hoy | cada día, 2 ciudades por turnos (cada una cada 6 días) | top 5 de diésel y gasolina 95 con dirección, ahorro, comparación con España |
+| Resumen de la semana | los lunes, con el histórico de hace 7 días | cambio semanal por combustible, provincias, ciudades y marcas |
+| Precio más alto o más bajo en N días | solo cuando ocurre (con 14 días de histórico o más) | la cifra, los últimos días y qué hacer |
+
+Cada noticia sale de datos propios de ese día; si no hay datos suficientes para que aporte algo, no se
+publica. No se generan decenas de páginas casi iguales: Google penaliza el contenido automático en masa.
+
 ## Imágenes de las noticias
 
 Foto real de surtidores o gasolineras a la derecha, con el titular y los precios del día sobre el amarillo de

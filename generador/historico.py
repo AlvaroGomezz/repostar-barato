@@ -67,7 +67,9 @@ def instantanea(datos: Datos) -> dict:
             barata = mas_baratas(m.estaciones, clave, 1)
             if r.n and barata:
                 fila[clave] = {"min": barata[0].precios[clave], "max": r.maximo, "media": r.media, "n": r.n,
-                               "rotulo": barata[0].rotulo, "dir": barata[0].direccion}
+                               "rotulo": barata[0].rotulo, "dir": barata[0].direccion,
+                               "top": [{"rotulo": e.rotulo, "dir": e.direccion, "precio": e.precios[clave],
+                                        "h24": e.abierta_24h} for e in mas_baratas(m.estaciones, clave, 5)]}
         snap["ciudades"].append(fila)
         if len(snap["ciudades"]) == 12:
             break

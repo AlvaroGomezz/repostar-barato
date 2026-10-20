@@ -5,15 +5,15 @@
 {% block contenido %}
 {{ mc.migas([("Noticias", none)]) }}
 <div class="titulo">
-  <h1>Precio de la gasolina, día a día</h1>
-  <p class="subtitulo">Un resumen cada día con los datos oficiales del Ministerio · {{ mc.frescura() }}</p>
+  <h1>Noticias del precio de la gasolina</h1>
+  <p class="subtitulo">Varias cada día, escritas con los datos oficiales del Ministerio · {{ mc.frescura() }}</p>
 </div>
 <section class="bloque" aria-label="Noticias">
   <ul class="noticias-lista">
   {% for a in noticias %}
     <li><a href="{{ url(a.ruta) }}" class="diario-item">
       <span class="di-texto">
-        <span class="diario-tema">Precio de la gasolina · <time datetime="{{ a.fecha.isoformat() }}">{{ a.fecha|fecha_media }}</time></span>
+        <span class="diario-tema">{{ a.tema }} · <time datetime="{{ a.fecha.isoformat() }}">{{ a.fecha|fecha_media }}</time></span>
         <span class="di-titulo">{{ a.titulo }}</span>
         <span class="di-nota">{{ a.descripcion }}</span>
       </span>

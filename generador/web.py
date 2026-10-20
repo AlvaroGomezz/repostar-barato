@@ -159,8 +159,8 @@ class Web:
 
         historico_completo = dict(self.historico)
         historico_completo[self.hoy] = articulo_hoy_snap
-        noticias = [articulos.escribir(s, historico_completo, self.url)
-                    for f, s in sorted(historico_completo.items(), reverse=True)]
+        noticias = [a for f, s in sorted(historico_completo.items(), reverse=True)
+                    for a in articulos.escribir_dia(s, historico_completo, self.url)]
         self.env.globals["noticia_hoy"] = noticias[0] if noticias else None
         try:
             lista = json.loads((imagenes.FOTOS / "credits.json").read_text(encoding="utf-8"))
@@ -205,11 +205,15 @@ class Web:
 
         # Una foto real de surtidores o gasolineras, distinta cada día, con el titular y los precios encima.
         for a in noticias:
-            filas = [fila_var(c, POR_CLAVE[c].nombre, a.medias[c], a.cambios.get(c))
-                     for c in ("diesel", "g95") if a.medias.get(c)]
-            foto = imagenes.foto_para(a.fecha.toordinal())
+            if a.imagen_filas:
+                filas = [fila(x["nombre"], x["valor"], x["nota"]) if x.get("nota") else
+                         fila_var(None, x["nombre"], x["valor"], x.get("var")) for x in a.imagen_filas]
+            else:
+                filas = [fila_var(c, POR_CLAVE[c].nombre, a.medias[c], a.cambios.get(c))
+                         for c in ("diesel", "g95") if a.medias.get(c)]
+            foto = imagenes.foto_para(a.fecha.toordinal() + a.orden)
             a.foto = self.creditos_fotos.get(foto)
-            imagenes.portada_con_foto(self.salida / a.imagen.lstrip("/"), "Precio de la gasolina hoy",
+            imagenes.portada_con_foto(self.salida / a.imagen.lstrip("/"), a.tema,
                                       a.titular, filas, foto, etiqueta=etiqueta(a.fecha))
         medias = [fila_var(c, POR_CLAVE[c].nombre, self.nac[c].media, self.variacion(c))
                   for c in ("diesel", "g95") if self.nac[c].media]
@@ -298,7 +302,7 @@ class Web:
         self.escribir(
             "/", "inicio.html", prioridad="1.0", cifras=cifras, mejor=mejor, ciudades=ciudades,
             hallazgo=hallazgo, marcas=marcas, media_pen=media_pen, prov_baratas=prov_baratas,
-            grupos=grupos_ordenados, baratas=baratas, noticias=noticias[:4],
+            grupos=grupos_ordenados, baratas=baratas, noticias=noticias[:6],
             n_estaciones=len(self.d.estaciones), n_municipios=len(self.d.municipios),
         )
 

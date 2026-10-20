@@ -216,12 +216,19 @@ def portada_con_foto(destino: Path, antetitulo: str, titulo: str, filas: list[di
         x0, x1 = margen, x_foto + 40
         d.rounded_rectangle([x0, y, x1, y + 72], radius=16, fill=BLANCO)
         d.text((x0 + 20, y + 22), fila["nombre"], font=fuente(24, 600), fill=GRIS)
-        fv = fuente(44, 700)
         valor = fila["valor"] + " €/l"
         wn = d.textlength(fila["nombre"], font=fuente(24, 600))
         xv = x0 + 20 + max(wn, 150) + 14
-        d.text((xv, y + 10), valor, font=fv, fill=TINTA)
         nota = fila.get("nota")
+        wnota = (d.textlength(nota, font=fuente(22, 700)) + (24 if fila.get("sentido") else 0) + 16) if nota else 0
+        # La cifra se encoge si no cabe junto a la nota; si ni así cabe, la nota se quita.
+        for tam in (44, 40, 36, 32):
+            fv = fuente(tam, 700)
+            if xv + d.textlength(valor, font=fv) + wnota <= x1 - 18:
+                break
+        else:
+            nota = None
+        d.text((xv, y + 10 + (44 - tam) // 2), valor, font=fv, fill=TINTA)
         if nota:
             sentido = fila.get("sentido", 0)
             color = ROJO if sentido > 0 else VERDE if sentido < 0 else GRIS

@@ -34,14 +34,19 @@ class Articulo:
     medias: dict = field(default_factory=dict)  # {"diesel": 1.887, ...}
     cambios: dict = field(default_factory=dict)  # {"diesel": 0.022, ...} desde el día anterior
     n_estaciones: int = 0
+    slug: str = "precio-gasolina-diesel-hoy"
+    tema: str = "Precio de la gasolina"   # antetítulo
+    orden: int = 0                         # posición dentro del día (0 = la principal)
+    # Cifras de su imagen: [{"nombre": "Diésel", "valor": 1.887, "var": 0.022 | None, "nota": "..."}]
+    imagen_filas: list = field(default_factory=list)
 
     @property
     def ruta(self) -> str:
-        return f"/noticias/{self.fecha.isoformat()}-precio-gasolina-diesel-hoy/"
+        return f"/noticias/{self.fecha.isoformat()}-{self.slug}/"
 
     @property
     def imagen(self) -> str:
-        return f"/imagenes/noticias/{self.fecha.isoformat()}.jpg"
+        return f"/imagenes/noticias/{self.fecha.isoformat()}-{self.slug}.jpg"
 
 
 def _mov(hoy: float, antes: float | None, rng: random.Random) -> tuple[str, float]:
@@ -273,3 +278,295 @@ def escribir(snap: dict, historico: dict, ruta_fn) -> Articulo:
     return Articulo(fecha, titulo, descripcion, entradilla, secciones, actualizado,
                     titular=titular, gancho=gancho[:1].upper() + gancho[1:], medias=medias,
                     cambios=cambios, n_estaciones=n_est)
+
+
+# ======================================================================
+# Más noticias cada día. Cada una sale de datos propios del día (nada de textos repetidos con otro
+# nombre): si no hay datos suficientes para que aporte algo, no se publica.
+# ======================================================================
+
+def _serie_nac(historico: dict, fecha: date, clave: str, dias: int = 30) -> list[tuple[date, float]]:
+    return [(f, s["nac"][clave]["media"]) for f, s in sorted(historico.items())
+            if f <= fecha and (fecha - f).days <= dias and clave in s.get("nac", {})]
+
+
+def _var_txt(d: float, fem: bool = False) -> str:
+    if abs(d) < UMBRAL:
+        return "sin cambios"
+    return f"{'sube' if d > 0 else 'baja'} {centimos(d)}"
+
+
+def _cts(d: float) -> str:
+    c = d * 100
+    if abs(c) < 0.05:
+        return "0 cts"
+    return f"{'+' if c > 0 else '−'}{abs(c):.1f}".replace(".", ",") + " cts"
+
+
+def repostar_hoy(snap: dict, historico: dict, ruta_fn) -> "Articulo | None":
+    """¿Merece la pena echar gasolina hoy o es mejor esperar?"""
+    fecha = date.fromisoformat(snap["fecha"])
+    actualizado = datetime.fromisoformat(snap["actualizado"])
+    rng = random.Random(fecha.toordinal() * 7 + 1)
+    s_d, s_g = _serie_nac(historico, fecha, "diesel"), _serie_nac(historico, fecha, "g95")
+    t_d = tendencia_mod.calcular(s_d, "diésel", "el")
+    t_g = tendencia_mod.calcular(s_g, "gasolina 95", "la")
+    if t_d["estado"] == "pocos":
+        return None
+    dm = _dia_mes(fecha)
+    titulo = rng.choice([
+        f"¿Merece la pena echar gasolina hoy o es mejor esperar? Lo que dice el precio este {dm}",
+        f"¿Lleno el depósito hoy o espero? Así se mueve el precio de la gasolina este {dm}",
+        f"¿Repostar hoy o esperar unos días? La tendencia del diésel y la gasolina, {dm}",
+    ])
+    titular = f"¿Repostar hoy o esperar? {dm[:1].upper() + dm[1:]}"
+    gancho = t_d["titulo"]
+    descripcion = (f"{t_d['texto'].split('.')[0]}. Te contamos si conviene llenar el depósito hoy o esperar, "
+                   f"dónde sube y dónde baja, y cómo ahorrar más.")
+    entradilla = Markup("{t}. {d} En cuanto a la gasolina 95: {g}.").format(
+        t=_b(t_d["titulo"]), d=t_d["texto"], g=t_g["texto"].split(".")[0].split(": ", 1)[-1])
+    secciones = []
+
+    s = Seccion("Así se ha movido el precio estos días")
+    previos = sorted((f, x) for f, x in historico.items() if f <= fecha and (fecha - f).days <= 7)
+    s.parrafos.append(escape("Precio medio del litro en las gasolineras de España, día a día:"))
+    s.tabla = {"cabecera": ["Día", "Diésel", "Gasolina 95"],
+               "filas": [[_dia_mes(f), precio(x["nac"]["diesel"]["media"]), precio(x["nac"]["g95"]["media"])]
+                         for f, x in reversed(previos) if "diesel" in x["nac"] and "g95" in x["nac"]]}
+    secciones.append(s)
+
+    s = Seccion("Entonces, ¿lleno hoy o espero?")
+    for t, nombre in ((t_d, "Diésel"), (t_g, "Gasolina 95")):
+        s.parrafos.append(Markup("{n}: {t}. {x}").format(n=_b(nombre), t=t["titulo"], x=t["texto"]))
+    if t_d.get("dia"):
+        s.parrafos.append(escape(t_d["dia"]))
+    s.parrafos.append(escape(t_d["nota"] + " Si tienes el depósito casi vacío, reposta ya: unos céntimos de "
+                             "tendencia pesan mucho menos que elegir bien la gasolinera."))
+    secciones.append(s)
+
+    # Dónde sube y dónde baja más desde ayer (Península).
+    ayer = historico.get(fecha - timedelta(days=1))
+    if ayer:
+        cambios = []
+        for pid, p in snap["prov"].items():
+            q = ayer.get("prov", {}).get(pid, {})
+            if pid in FISCALIDAD_ESPECIAL or "diesel" not in p or "diesel" not in q:
+                continue
+            cambios.append((p["diesel"][0] - q["diesel"][0], p))
+        if len(cambios) >= 6:
+            cambios.sort(key=lambda x: x[0])
+            ruta_p = lambda p: f"/gasolineras/{p['slug']}/"  # noqa: E731
+            s = Seccion("Dónde sube y dónde baja el diésel hoy")
+            baja = [x for x in cambios[:3] if x[0] < -UMBRAL]
+            sube = [x for x in reversed(cambios[-3:]) if x[0] > UMBRAL]
+            if baja:
+                s.parrafos.append(Markup("Donde más baja desde ayer: ") + Markup(", ").join(
+                    Markup("{} ({})").format(_enlace(ruta_fn, ruta_p(p), p["nombre"]), _cts(d)) for d, p in baja) + Markup("."))
+            if sube:
+                s.parrafos.append(Markup("Donde más sube: ") + Markup(", ").join(
+                    Markup("{} ({})").format(_enlace(ruta_fn, ruta_p(p), p["nombre"]), _cts(d)) for d, p in sube) + Markup("."))
+            if s.parrafos:
+                secciones.append(s)
+
+    # Lo que de verdad ahorra: elegir gasolinera dentro de la ciudad.
+    ciudades = [c for c in snap.get("ciudades", []) if c.get("diesel")]
+    if ciudades:
+        s = Seccion("Lo que más ahorra: elegir bien dónde")
+        frases = [Markup("en {} hay {} entre la más cara y la más barata").format(
+            _enlace(ruta_fn, c["ruta"], c["nombre"]), precio((c["diesel"]["max"] - c["diesel"]["min"]) * DEPOSITO_L, 2))
+            for c in ciudades[:4]]
+        s.parrafos.append(Markup("Esperar un par de días puede ahorrarte unos céntimos; elegir gasolinera, varios euros. "
+                                 "Al llenar {} litros de diésel, ").format(DEPOSITO_L) + Markup("; ").join(frases) + Markup(". ") +
+                          _enlace(ruta_fn, "/", "Busca la más barata cerca de ti") + Markup("."))
+        secciones.append(s)
+
+    filas = []
+    for clave, nombre, serie in (("diesel", "Diésel", s_d), ("g95", "Gasolina 95", s_g)):
+        hoy_v = snap["nac"][clave]["media"]
+        hace = next((v for f, v in serie if (fecha - f).days <= 7), None)
+        filas.append({"nombre": nombre, "valor": hoy_v, "var": (hoy_v - hace) if hace is not None and len(serie) > 1 else None})
+    return Articulo(fecha, titulo, descripcion, entradilla, secciones, actualizado, titular=titular, gancho=gancho,
+                    medias={k: v["media"] for k, v in snap["nac"].items() if k in ("diesel", "g95", "g98", "glp")},
+                    n_estaciones=max(v["n"] for v in snap["nac"].values()), slug="merece-la-pena-repostar-hoy",
+                    tema="Repostar hoy o esperar", orden=1, imagen_filas=filas)
+
+
+def ciudad(snap: dict, historico: dict, ruta_fn, c: dict, orden: int) -> "Articulo | None":
+    """Gasolineras más baratas en una gran ciudad hoy, con su top 5 de cada combustible."""
+    d, g = c.get("diesel"), c.get("g95")
+    if not d or not g or not d.get("top") or not g.get("top"):
+        return None
+    fecha = date.fromisoformat(snap["fecha"])
+    actualizado = datetime.fromisoformat(snap["actualizado"])
+    rng = random.Random(fecha.toordinal() * 31 + orden)
+    dm, nombre = _dia_mes(fecha), c["nombre"]
+    titulo = rng.choice([
+        f"Gasolineras más baratas en {nombre} hoy, {dm}: diésel desde {precio(d['min'])} y gasolina 95 desde {precio(g['min'])}",
+        f"Dónde echar gasolina más barata en {nombre} hoy, {dm}: las cinco mejores de cada combustible",
+        f"Precio de la gasolina en {nombre} hoy, {dm}: la más barata, a {precio(g['min'])}",
+    ])
+    titular = f"Gasolina más barata en {nombre} hoy"
+    slug = "gasolineras-mas-baratas-" + c["ruta"].strip("/").split("/")[-1] + "-hoy"
+    ayer = historico.get(fecha - timedelta(days=1))
+    c_ayer = next((x for x in (ayer or {}).get("ciudades", []) if x.get("ruta") == c["ruta"]), None)
+    mov = ""
+    if c_ayer and c_ayer.get("diesel"):
+        dif = d["media"] - c_ayer["diesel"]["media"]
+        mov = (f" El diésel medio de la ciudad {_var_txt(dif)} desde ayer." if abs(dif) >= UMBRAL
+               else " El diésel medio está igual que ayer.")
+    entradilla = Markup(
+        "Repostar hoy en {ciudad} cuesta entre {gmin} y {gmax} el litro de gasolina 95, y entre {dmin} y {dmax} el de "
+        "diésel, según los precios oficiales de sus {n} gasolineras a las {h}.{mov}"
+    ).format(ciudad=_enlace(ruta_fn, c["ruta"], nombre), gmin=_b(precio(g["min"])), gmax=precio(g["max"]),
+             dmin=_b(precio(d["min"])), dmax=precio(d["max"]), n=c["n"], h=hora(actualizado), mov=mov)
+    descripcion = (f"Las cinco gasolineras más baratas de {nombre} hoy para diésel ({precio(d['min'])}) y gasolina 95 "
+                   f"({precio(g['min'])}), con su dirección, y cuánto ahorras frente a la más cara.")
+    secciones = []
+    for clave, datos, frase in (("diesel", d, "el diésel más barato"), ("g95", g, "la gasolina 95 más barata")):
+        s = Seccion(f"Las 5 gasolineras con {frase} de {nombre}")
+        s.tabla = {"cabecera": ["Gasolinera", "Dirección", "Precio"],
+                   "filas": [[e["rotulo"] + (" · 24 h" if e.get("h24") else ""), e["dir"], precio(e["precio"])]
+                             for e in datos["top"]]}
+        secciones.append(s)
+    s = Seccion("Cuánto ahorras eligiendo bien")
+    s.parrafos.append(escape(
+        f"Llenar {DEPOSITO_L} litros de diésel en la gasolinera más barata de {nombre} cuesta "
+        f"{precio(d['min'] * DEPOSITO_L, 2)}; en la más cara, {precio(d['max'] * DEPOSITO_L, 2)}. Son "
+        f"{precio((d['max'] - d['min']) * DEPOSITO_L, 2)} de diferencia en un solo depósito."))
+    nac = snap["nac"]
+    dif = d["media"] - nac["diesel"]["media"]
+    s.parrafos.append(escape(
+        f"El diésel medio de {nombre} ({precio(d['media'])}) está "
+        + ("igual que" if abs(dif) < UMBRAL else f"{centimos(dif)} {'por encima' if dif > 0 else 'por debajo'} de")
+        + f" la media de España ({precio(nac['diesel']['media'])})."))
+    s.parrafos.append(Markup("Consulta {} en la lista completa, ordenadas por precio o por cercanía.").format(
+        _enlace(ruta_fn, c["ruta"], f"las {c['n']} gasolineras de {nombre}")))
+    secciones.append(s)
+    return Articulo(fecha, titulo, descripcion, entradilla, secciones, actualizado, titular=titular,
+                    gancho=f"Diésel desde {precio(d['min'])} en {nombre}",
+                    medias={k: v["media"] for k, v in nac.items() if k in ("diesel", "g95", "g98", "glp")},
+                    n_estaciones=c["n"], slug=slug, tema=f"Precio de la gasolina en {nombre}", orden=orden,
+                    imagen_filas=[{"nombre": "Diésel", "valor": d["min"], "nota": "la más barata"},
+                                  {"nombre": "Gasolina 95", "valor": g["min"], "nota": "la más barata"}])
+
+
+def semanal(snap: dict, historico: dict, ruta_fn) -> "Articulo | None":
+    """Los lunes: resumen de la semana."""
+    fecha = date.fromisoformat(snap["fecha"])
+    antes = historico.get(fecha - timedelta(days=7))
+    if fecha.weekday() != 0 or not antes:
+        return None
+    actualizado = datetime.fromisoformat(snap["actualizado"])
+    nac, nac0 = snap["nac"], antes["nac"]
+    dd = nac["diesel"]["media"] - nac0["diesel"]["media"]
+    dg = nac["g95"]["media"] - nac0["g95"]["media"]
+    titulo = (f"Resumen de la semana: el diésel {_var_txt(dd)} y la gasolina 95 {_var_txt(dg)} en siete días"
+              .replace("sin cambios", "se mantiene"))
+    secciones = []
+    s = Seccion("Precio medio, hoy y hace una semana")
+    s.tabla = {"cabecera": ["Combustible", "Hace una semana", "Hoy", "Cambio"],
+               "filas": [[POR_CLAVE[k].nombre, precio(nac0[k]["media"]), precio(nac[k]["media"]),
+                          _cts(nac[k]["media"] - nac0[k]["media"])]
+                         for k in ("diesel", "g95", "g98", "glp") if k in nac and k in nac0]}
+    s.parrafos.append(escape(
+        f"Llenar {DEPOSITO_L} litros de diésel cuesta hoy {precio(nac['diesel']['media'] * DEPOSITO_L, 2)}, "
+        f"{precio(abs(dd) * DEPOSITO_L, 2)} {'más' if dd > 0 else 'menos'} que hace una semana."))
+    secciones.append(s)
+    cambios = []
+    for pid, p in snap["prov"].items():
+        q = antes.get("prov", {}).get(pid, {})
+        if pid not in FISCALIDAD_ESPECIAL and "diesel" in p and "diesel" in q:
+            cambios.append((p["diesel"][0] - q["diesel"][0], p))
+    if len(cambios) >= 6:
+        cambios.sort(key=lambda x: x[0])
+        s = Seccion("Las provincias donde más ha cambiado el diésel")
+        s.tabla = {"cabecera": ["Provincia", "Hoy", "Cambio en la semana"],
+                   "filas": [[(p["nombre"], f"/gasolineras/{p['slug']}/"), precio(p["diesel"][0]), _cts(dif)]
+                             for dif, p in cambios[:3] + cambios[-3:][::-1]]}
+        s.parrafos.append(escape("Las tres que más bajan y las tres que más suben en la Península y Baleares."))
+        secciones.append(s)
+    filas_c = []
+    for c in snap.get("ciudades", []):
+        c0 = next((x for x in antes.get("ciudades", []) if x.get("ruta") == c["ruta"]), None)
+        if c.get("diesel") and c0 and c0.get("diesel"):
+            filas_c.append([(c["nombre"], c["ruta"]), precio(c["diesel"]["media"]), _cts(c["diesel"]["media"] - c0["diesel"]["media"])])
+    if filas_c:
+        s = Seccion("En las grandes ciudades")
+        s.tabla = {"cabecera": ["Ciudad", "Diésel medio", "Cambio en la semana"], "filas": filas_c}
+        secciones.append(s)
+    marcas = sorted((m for m in snap.get("marcas", {}).values() if m.get("n", 0) >= 50 and "diesel" in m),
+                    key=lambda m: m["diesel"])
+    if len(marcas) >= 5:
+        s = Seccion("Las marcas más baratas esta semana")
+        s.parrafos.append(escape("Entre las cadenas con al menos 50 gasolineras, por precio medio del diésel: " +
+                                 "; ".join(f"{m['nombre']}, {precio(m['diesel'])}" for m in marcas[:5]) + "."))
+        secciones.append(s)
+    entradilla = Markup("En los últimos siete días, el precio medio del diésel en España {d} hasta {dh} y el de la "
+                        "gasolina 95 {g} hasta {gh}.").format(
+        d=_var_txt(dd), dh=_b(precio(nac["diesel"]["media"])), g=_var_txt(dg), gh=_b(precio(nac["g95"]["media"])))
+    return Articulo(fecha, titulo, f"Cómo ha cambiado el precio de la gasolina y el diésel en la última semana, "
+                    f"por provincias, ciudades y marcas.", entradilla, secciones, actualizado,
+                    titular="Resumen de la semana", gancho=f"Diésel {_cts(dd)} en la semana",
+                    medias={k: v["media"] for k, v in nac.items() if k in ("diesel", "g95", "g98", "glp")},
+                    n_estaciones=max(v["n"] for v in nac.values()), slug="resumen-semanal-precio-gasolina",
+                    tema="Resumen semanal", orden=5,
+                    imagen_filas=[{"nombre": "Diésel", "valor": nac["diesel"]["media"], "var": dd},
+                                  {"nombre": "Gasolina 95", "valor": nac["g95"]["media"], "var": dg}])
+
+
+def record(snap: dict, historico: dict, ruta_fn) -> "Articulo | None":
+    """Cuando ocurre: el precio más alto o más bajo de las últimas semanas."""
+    fecha = date.fromisoformat(snap["fecha"])
+    for clave, nombre, art in (("diesel", "diésel", "El"), ("g95", "gasolina 95", "La")):
+        serie = _serie_nac(historico, fecha, clave)
+        if len(serie) < 14:
+            continue
+        hoy_v = serie[-1][1]
+        resto = [v for _, v in serie[:-1]]
+        alto, bajo = hoy_v > max(resto) + 0.001, hoy_v < min(resto) - 0.001
+        if not (alto or bajo):
+            continue
+        dias = (fecha - serie[0][0]).days
+        extremo = "más alto" if alto else "más bajo"
+        prev = max(resto) if alto else min(resto)
+        titulo = f"{art} {nombre} marca su precio {extremo} de los últimos {dias} días: {precio(hoy_v)} el litro"
+        actualizado = datetime.fromisoformat(snap["actualizado"])
+        s = Seccion("Los últimos días")
+        s.tabla = {"cabecera": ["Día", POR_CLAVE[clave].nombre],
+                   "filas": [[_dia_mes(f), precio(v)] for f, v in reversed(serie[-10:])]}
+        s2 = Seccion("Qué hacer")
+        s2.parrafos.append(escape(
+            (f"Con el precio en máximos, compensa más que nunca comparar: en una misma ciudad la diferencia entre "
+             f"gasolineras suele superar los 10 céntimos por litro, mucho más que la subida." if alto else
+             f"Es un buen momento para llenar el depósito si lo tienes a medias.")))
+        s2.parrafos.append(_enlace(ruta_fn, "/", "Busca la más barata cerca de ti") + Markup("."))
+        entradilla = Markup("{a} {n} cuesta hoy de media {v} en España, su precio {e} de los últimos {d} días. "
+                            "El anterior {e} era de {p}.").format(a=art, n=nombre, v=_b(precio(hoy_v)), e=extremo, d=dias, p=precio(prev))
+        return Articulo(fecha, titulo, f"{art} {nombre} marca hoy su precio {extremo} de los últimos {dias} días.",
+                        entradilla, [s, s2], actualizado, titular=f"{art} {nombre}, en su precio {extremo} en {dias} días",
+                        gancho=f"{POR_CLAVE[clave].nombre} en máximos" if alto else f"{POR_CLAVE[clave].nombre} en mínimos",
+                        medias={k: v["media"] for k, v in snap["nac"].items() if k in ("diesel", "g95", "g98", "glp")},
+                        n_estaciones=max(v["n"] for v in snap["nac"].values()),
+                        slug=f"{'maximo' if alto else 'minimo'}-precio-{'diesel' if clave == 'diesel' else 'gasolina'}",
+                        tema="Última hora", orden=4,
+                        imagen_filas=[{"nombre": POR_CLAVE[clave].nombre, "valor": hoy_v, "nota": "máximo" if alto else "mínimo"}])
+    return None
+
+
+def escribir_dia(snap: dict, historico: dict, ruta_fn) -> list[Articulo]:
+    """Todas las noticias de un día, en orden: la principal primero."""
+    fecha = date.fromisoformat(snap["fecha"])
+    lista = [escribir(snap, historico, ruta_fn)]
+    for f in (repostar_hoy, record, semanal):
+        a = f(snap, historico, ruta_fn)
+        if a:
+            lista.append(a)
+    # Dos grandes ciudades cada día, por turnos: cada una sale una vez cada seis días.
+    ciudades = snap.get("ciudades", [])
+    if ciudades:
+        k = (fecha.toordinal() * 2) % len(ciudades)
+        for i, c in enumerate(dict.fromkeys([k, (k + 1) % len(ciudades)])):
+            a = ciudad(snap, historico, ruta_fn, ciudades[c], orden=2 + i)
+            if a:
+                lista.append(a)
+    return sorted(lista, key=lambda a: a.orden)

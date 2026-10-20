@@ -86,7 +86,7 @@
     <article class="diario-principal">
       <a href="{{ url(principal.ruta) }}" class="diario-enlace">
         <img src="{{ url(principal.imagen) }}" alt="Precio medio del diésel y la gasolina 95 el {{ principal.fecha|fecha_media }}" width="1200" height="675" loading="lazy" decoding="async">
-        <span class="diario-tema">Precio de la gasolina</span>
+        <span class="diario-tema">{{ principal.tema }}</span>
         <span class="diario-titulo">{{ principal.titulo }}</span>
         <span class="diario-texto">{{ principal.descripcion }}</span>
         <time class="diario-fecha" datetime="{{ principal.actualizado.isoformat() }}">{{ principal.fecha|fecha_larga|capitalize }} · {{ principal.actualizado|hora }}</time>
@@ -94,9 +94,9 @@
     </article>
     {% endif %}
     <ul class="diario-lista">
-      {% for a in noticias[1:3] %}
+      {% for a in noticias[1:4] %}
       <li><a href="{{ url(a.ruta) }}" class="diario-item">
-        <span class="di-texto"><span class="diario-tema">Precio de la gasolina</span><span class="di-titulo">{{ a.titulo }}</span><time datetime="{{ a.fecha.isoformat() }}">{{ a.fecha|fecha_media }}</time></span>
+        <span class="di-texto"><span class="diario-tema">{{ a.tema }}</span><span class="di-titulo">{{ a.titulo }}</span><time datetime="{{ a.fecha.isoformat() }}">{{ a.fecha|fecha_media }}</time></span>
         <img src="{{ url(a.imagen) }}" alt="" width="1200" height="675" loading="lazy" decoding="async">
       </a></li>
       {% endfor %}

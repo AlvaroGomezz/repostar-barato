@@ -111,6 +111,7 @@
   <div class="temas-fila">
     {% if noticia_hoy %}<a class="tema-hoy" href="{{ url(noticia_hoy.ruta) }}"><span class="tema-etq">Hoy</span>Precio de la gasolina, {{ (noticia_hoy.fecha|fecha_media).rsplit(' de ', 1)[0] }}</a>{% endif %}
     <a href="{{ url('/') }}#buscar">Gasolineras cerca de mí</a>
+    <a href="{{ url('/ruta/') }}">Gasolineras en tu ruta</a>
     <a href="{{ url('/calculadora/') }}">Calculadora de gasolina</a>
     <a href="{{ url('/') }}#provincias">Precio por provincia</a>
     <a href="{{ url('/marcas/') }}">Marcas más baratas</a>

@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta
 
 from markupsafe import Markup, escape
 
+from . import tendencia as tendencia_mod
 from .config import FISCALIDAD_ESPECIAL, POR_CLAVE, con_articulo
 from .texto import DIAS, MESES, centimos, fecha_larga, hora, numero, precio
 
@@ -142,6 +143,16 @@ def escribir(snap: dict, historico: dict, ruta_fn) -> Articulo:
                 f"{precio(abs(d_hoy - d_sem) * DEPOSITO_L, 2)} en diésel.")
     s.parrafos.append(texto)
     secciones.append(s)
+
+    # ---- ¿repostar hoy o esperar? ----
+    previos = sorted((f, s2) for f, s2 in historico.items() if f <= fecha and fecha - f <= timedelta(days=30))
+    t_d = tendencia_mod.calcular([(f, s2["nac"].get("diesel", {}).get("media")) for f, s2 in previos], "diésel", "el")
+    t_g = tendencia_mod.calcular([(f, s2["nac"].get("g95", {}).get("media")) for f, s2 in previos], "gasolina 95", "la")
+    if t_d["estado"] != "pocos":
+        s = Seccion("¿Repostar hoy o esperar?")
+        s.parrafos.append(escape(f"{t_d['titulo']}. {t_d['texto']}"))
+        s.parrafos.append(escape(t_g["texto"] + (" " + t_d["dia"] if t_d.get("dia") else "") + " " + t_d["nota"]))
+        secciones.append(s)
 
     # ---- grandes ciudades: lo que más se busca ("precio gasolina hoy en Madrid") ----
     for i, ciu in enumerate(snap.get("ciudades", [])):

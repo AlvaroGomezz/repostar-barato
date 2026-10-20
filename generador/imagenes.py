@@ -139,3 +139,99 @@ def tarjeta(destino: Path, antetitulo: str, titulo: str, filas: list[dict], pie:
 
     destino.parent.mkdir(parents=True, exist_ok=True)
     img.save(destino, "JPEG", quality=84, optimize=True, progressive=True)
+
+
+# ---------- con foto, como las de los periódicos ----------
+
+FOTOS = RAIZ / "generador" / "fotos"
+# Dónde está lo importante de cada foto (0 = izquierda, 1 = derecha), para recortarla sin perderlo.
+ENCUADRE = {
+    "gas-pump-in-lannion.jpg": 0.55,
+    "petrol-pump-mp3h0354.jpg": 0.45,
+    "gas-pump-handle-fueling-station-34825559585.jpg": 0.55,
+    "red-gas-pump-handle-in-car-gas.jpg": 0.4,
+    "gasolinera-en-ceutaa-1.jpg": 0.55,
+    "olaberria-gasolinera-avia-1.jpg": 0.45,
+}
+
+
+def fotos() -> list[str]:
+    return sorted(ENCUADRE)
+
+
+def foto_para(clave: int) -> str:
+    """Una foto distinta según la clave (el día, la provincia…), siempre la misma para la misma clave."""
+    lista = fotos()
+    return lista[clave % len(lista)]
+
+
+def _recorte(foto: Image.Image, ancho: int, alto: int, x_rel: float) -> Image.Image:
+    escala = max(ancho / foto.width, alto / foto.height)
+    w, h = round(foto.width * escala), round(foto.height * escala)
+    foto = foto.resize((w, h), Image.LANCZOS)
+    x = round((w - ancho) * min(1, max(0, x_rel)))
+    y = round((h - alto) / 2)
+    return foto.crop((x, y, x + ancho, y + alto))
+
+
+def portada_con_foto(destino: Path, antetitulo: str, titulo: str, filas: list[dict], foto: str,
+                     etiqueta: str = "") -> None:
+    img = Image.new("RGB", (ANCHO, ALTO), AMARILLO)
+    x_foto = 520
+    original = Image.open(FOTOS / foto).convert("RGB")
+    img.paste(_recorte(original, ANCHO - x_foto, ALTO, ENCUADRE.get(foto, .5)), (x_foto, 0))
+    # Unión suave entre el amarillo y la foto.
+    franja = 90
+    degradado = Image.new("L", (franja, ALTO))
+    dg = ImageDraw.Draw(degradado)
+    for i in range(franja):
+        dg.line([(i, 0), (i, ALTO)], fill=round(255 * (1 - i / franja) ** 1.6))
+    img.paste(Image.new("RGB", (franja, ALTO), AMARILLO), (x_foto, 0), degradado)
+
+    d = ImageDraw.Draw(img)
+    margen = 56
+    _simbolo(d, margen, 48, 38)
+    d.text((margen + 38, 46), "Repostar Barato", font=fuente(30, 700), fill=TINTA)
+    if etiqueta:
+        f = fuente(24, 700)
+        w = d.textlength(etiqueta, font=f)
+        x1 = ANCHO - 40
+        d.rounded_rectangle([x1 - w - 36, 40, x1, 86], radius=23, fill=TINTA)
+        d.text((x1 - w - 18, 49), etiqueta, font=f, fill=BLANCO)
+
+    ancho_texto = x_foto - margen - 10
+    y = 150
+    if antetitulo:
+        d.text((margen, y), antetitulo.upper(), font=fuente(22, 700), fill=SUAVE)
+        y += 42
+    alto_titulo = ALTO - y - (70 + 84 * len(filas[:2]))
+    f, lineas, tam = _titulo_que_cabe(d, titulo, ancho_texto, alto_titulo, tam_max=70, tam_min=40)
+    for linea in lineas:
+        d.text((margen, y), linea, font=f, fill=TINTA)
+        y += round(tam * 1.05)
+
+    # Los precios del día, en fichas blancas abajo a la izquierda.
+    y = ALTO - 48 - 84 * len(filas[:2])
+    for fila in filas[:2]:
+        x0, x1 = margen, x_foto + 40
+        d.rounded_rectangle([x0, y, x1, y + 72], radius=16, fill=BLANCO)
+        d.text((x0 + 20, y + 22), fila["nombre"], font=fuente(24, 600), fill=GRIS)
+        fv = fuente(44, 700)
+        valor = fila["valor"] + " €/l"
+        wn = d.textlength(fila["nombre"], font=fuente(24, 600))
+        xv = x0 + 20 + max(wn, 150) + 14
+        d.text((xv, y + 10), valor, font=fv, fill=TINTA)
+        nota = fila.get("nota")
+        if nota:
+            sentido = fila.get("sentido", 0)
+            color = ROJO if sentido > 0 else VERDE if sentido < 0 else GRIS
+            fn = fuente(22, 700)
+            wnota = d.textlength(nota, font=fn)
+            xn = x1 - 18 - wnota
+            d.text((xn, y + 24), nota, font=fn, fill=color)
+            if sentido:
+                _triangulo(d, round(xn - 22), y + 29, sentido > 0, color)
+        y += 84
+
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    img.save(destino, "JPEG", quality=84, optimize=True, progressive=True)

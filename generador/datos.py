@@ -11,6 +11,7 @@ from pathlib import Path
 import requests
 
 from .config import API_URL, COMBUSTIBLES, ZONA
+from .horario import semana
 from .texto import capitalizar, nombre_bonito, slug
 
 PROVINCIAS = {
@@ -56,6 +57,11 @@ class Estacion:
     @property
     def abierta_24h(self) -> bool:
         return "24H" in self.horario.upper().replace(" ", "")
+
+    @property
+    def semana(self) -> str | None:
+        """Horario compacto para saber en el navegador si está abierta ahora (ver horario.py)."""
+        return semana(self.horario)
 
     @property
     def mapa(self) -> str:

@@ -58,6 +58,7 @@ class Sitio:
     titular: str
     nif: str
     email: str
+    telegram: str = ""  # canal público, p. ej. "@repostarbarato"
 
 
 def cargar_sitio() -> Sitio:
@@ -74,4 +75,5 @@ def cargar_sitio() -> Sitio:
         titular=d.get("titular", "").strip(),
         nif=d.get("nif", "").strip(),
         email=d.get("email", "").strip(),
+        telegram=d.get("telegram", "").strip(),
     )

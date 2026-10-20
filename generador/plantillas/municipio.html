@@ -25,6 +25,7 @@
     {% if n > 1 %}
     <div class="herramientas">
       <button type="button" class="boton-sec" data-cercania aria-pressed="false">Ordenar por cercanía</button>
+      <button type="button" class="boton-sec" data-solo-abiertas aria-pressed="false">Abiertas ahora</button>
       {% if n24 and n24 < n %}<button type="button" class="boton-sec" data-solo24 aria-pressed="false">Solo 24 horas</button>{% endif %}
     </div>
     {% endif %}
@@ -36,7 +37,7 @@
       <div class="estacion-id">
         <strong translate="no">{{ e.rotulo }}</strong>
         <span>{{ e.direccion }}</span>
-        <span class="estacion-meta">{% if e.abierta_24h %}Abierta 24 horas{% else %}{{ e.horario }}{% endif %}<span class="distancia" data-distancia></span></span>
+        <span class="estacion-meta"><span class="ahora" data-ahora{% if e.semana %} data-h="{{ e.semana }}"{% endif %}></span>{% if e.abierta_24h %}Abierta 24 horas{% else %}{{ e.horario }}{% endif %}<span class="distancia" data-distancia></span></span>
       </div>
       <div class="estacion-precio">
         {% for c in UI %}

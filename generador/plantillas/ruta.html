@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% import "macros.html" as mc with context %}
+{% block titulo %}Gasolineras en tu ruta: dónde repostar más barato en un viaje{% endblock %}
+{% block descripcion %}Pon el origen y el destino de tu viaje y te enseñamos las gasolineras más baratas del camino, tramo a tramo, con los precios oficiales de hoy.{% endblock %}
+{% block contenido %}
+{{ mc.migas([("Gasolineras en tu ruta", none)]) }}
+<div class="titulo">
+  <h1>Gasolineras más baratas en tu ruta</h1>
+  <p class="subtitulo">Elige origen y destino: te decimos dónde parar a repostar · {{ mc.frescura() }}</p>
+</div>
+
+<section class="bloque ruta-bloque" aria-label="Tu viaje">
+  <form class="ruta-form" data-ruta autocomplete="off">
+    <div class="ruta-campos">
+      <div class="campo-calc buscador">
+        <label for="ruta-origen">Desde</label>
+        <input id="ruta-origen" type="search" placeholder="Pueblo o ciudad de salida…" spellcheck="false" data-buscador data-recoger data-ruta-origen role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug-origen">
+        <ul class="sugerencias" id="sug-origen" role="listbox" aria-label="Municipios" data-sugerencias hidden></ul>
+        <button type="button" class="enlace-boton" data-ruta-yo>Usar mi ubicación</button>
+      </div>
+      <button type="button" class="ruta-cambiar" data-ruta-cambiar aria-label="Cambiar origen y destino">⇅</button>
+      <div class="campo-calc buscador">
+        <label for="ruta-destino">Hasta</label>
+        <input id="ruta-destino" type="search" placeholder="Pueblo o ciudad de llegada…" spellcheck="false" data-buscador data-recoger data-ruta-destino role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug-destino">
+        <ul class="sugerencias" id="sug-destino" role="listbox" aria-label="Municipios" data-sugerencias hidden></ul>
+      </div>
+    </div>
+    <div class="ruta-pie">
+      {{ mc.selector() }}
+      <button class="boton-negro ruta-ir" type="submit">Buscar gasolineras en la ruta</button>
+    </div>
+    <p class="zona-aviso" data-ruta-aviso hidden aria-live="polite"></p>
+  </form>
+</section>
+
+<section class="bloque ruta-resultado" data-ruta-resultado hidden aria-live="polite"></section>
+
+{{ mc.faq([
+  ("¿Cómo encuentro la gasolinera más barata en mi ruta?", "Escribe el municipio de salida y el de llegada y pulsa «Buscar». Calculamos el camino por carretera y te enseñamos las gasolineras que quedan a menos de 1, 3 o 5 kilómetros de él, ordenadas por precio o en el orden del camino, con lo que cuesta llenar el depósito en cada una."),
+  ("¿Dónde conviene parar a repostar en un viaje largo?", "Mira el apartado «Dónde parar, tramo a tramo»: para cada tramo de 100 kilómetros te decimos la gasolinera más barata. En autovía, las áreas de servicio suelen ser más caras que las gasolineras de los pueblos cercanos a la salida."),
+  ("¿Los precios son de hoy?", "Sí. Son los precios oficiales que las gasolineras comunican al Ministerio para la Transición Ecológica, actualizados varias veces al día. Confirma siempre el precio en el surtidor."),
+]) }}
+{% endblock %}

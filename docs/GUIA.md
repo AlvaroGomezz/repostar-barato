@@ -28,6 +28,23 @@ Usa un correo específico para la web, no el personal.
 3. En AdSense → Privacidad y mensajes, activa el mensaje de consentimiento del RGPD (obligatorio en Europa y gratuito).
 4. Google revisa la web (de unos días a unas semanas). Si la rechaza por «contenido de poco valor», espera a tener más histórico y tráfico y vuelve a solicitarlo.
 
+## Paso 5 · Canal de Telegram con el precio de cada mañana (gratis, opcional)
+
+Cada día, a partir de las 8:00, la web publica en un canal de Telegram la imagen de la noticia, el precio
+medio, el diésel más barato en las grandes ciudades y si conviene repostar hoy o esperar.
+
+1. En Telegram, habla con **@BotFather**, escribe `/newbot` y sigue los pasos. Al final te da un
+   **token** (algo como `123456:ABC-...`). No lo compartas.
+2. Crea un **canal público** (por ejemplo, `@repostarbarato`) y añade tu bot como **administrador** con
+   permiso para publicar.
+3. En GitHub, en el repositorio: **Settings → Secrets and variables → Actions**.
+   - Pestaña *Secrets*: **New repository secret**, nombre `TELEGRAM_TOKEN` y, como valor, el token.
+   - Pestaña *Variables*: **New repository variable**, nombre `TELEGRAM_CHAT` y, como valor, el canal
+     (`@repostarbarato`).
+4. En `sitio.toml`, pon `telegram = "@repostarbarato"` para que la web enlace el canal.
+
+Sin estos ajustes no se publica nada y la web funciona igual.
+
 ## Qué esperar
 
 - Las primeras semanas Google indexa poco a poco; el tráfico llega a partir de 1–3 meses, si llega.

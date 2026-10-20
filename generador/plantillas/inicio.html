@@ -131,6 +131,20 @@
     </a></li>
     {% endfor %}
   </ul>
+  <div class="tendencia" data-reveal>
+    {% for c in UI %}{% set t = tendencias[c] %}
+    <div class="tend tend-{{ t.estado }}" data-c="{{ c }}">
+      <div class="tend-texto">
+        <p class="tend-pregunta">¿Repostar hoy o esperar? · {{ C[c].nombre }}</p>
+        <p class="tend-titulo">{{ t.titulo }}</p>
+        <p>{{ t.texto }}</p>
+        {% if t.dia %}<p>{{ t.dia }}</p>{% endif %}
+        {% if t.nota %}<p class="tend-nota">{{ t.nota }}</p>{% endif %}
+      </div>
+      {% if t.linea %}<svg class="tend-linea" viewBox="0 0 120 32" preserveAspectRatio="none" role="img" aria-label="Precio medio de los últimos días"><polyline points="{{ t.linea }}" fill="none" stroke="currentColor" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/></svg>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
   {% for c in UI %}{% set e = mejor[c] %}
   {% if e %}<p class="hoy-dato" data-c="{{ c }}">La más barata de la Península: <b translate="no">{{ e.rotulo }}</b>, en <a href="{{ url(e.municipio.ruta) }}">{{ e.municipio.nombre }}</a> ({{ e.municipio.provincia.nombre }}), a {{ e.precios[c]|precio }} el litro de {{ C[c].nombre_largo }}.</p>{% endif %}
   {% endfor %}

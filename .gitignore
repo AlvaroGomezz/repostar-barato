@@ -3,6 +3,7 @@ __pycache__/
 .pytest_cache/
 publico/
 respaldo/
+aviso/
 *.pyc
 .taste-skill/
 .claude/skills/

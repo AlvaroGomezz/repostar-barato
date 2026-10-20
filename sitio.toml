@@ -17,3 +17,7 @@ search_console = ""
 titular = ""
 nif = ""
 email = ""
+
+# Canal de Telegram donde se publica cada mañana el precio del día, p. ej. "@repostarbarato".
+# Vacío = no se enlaza. Para publicar hacen falta además el bot y los ajustes de docs/GUIA.md.
+telegram = ""

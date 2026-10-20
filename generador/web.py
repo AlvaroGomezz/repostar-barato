@@ -9,7 +9,7 @@ from xml.sax.saxutils import escape as xml_escape
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markupsafe import Markup
 
-from . import articulos, graficos, imagenes
+from . import articulos, graficos, imagenes, tendencia
 from .config import COMBUSTIBLES, FISCALIDAD_ESPECIAL, POR_CLAVE, RAIZ, Sitio, con_articulo
 from .datos import Datos, Estacion, Municipio, Provincia, mas_baratas, resumen
 from .texto import (capitalizar, centimos, fecha_corta, fecha_larga, fecha_media, hora, numero,
@@ -59,6 +59,12 @@ class Web:
         )
         self.nac = {c.clave: resumen(datos.estaciones, c.clave) for c in COMBUSTIBLES}
         self.ayer = historico.get(self.hoy - timedelta(days=1))
+        # ¿Repostar hoy o esperar? Tendencia del precio medio en España de cada combustible.
+        nombres = {"diesel": ("diésel", "el"), "g95": ("gasolina 95", "la"), "g98": ("gasolina 98", "la"), "glp": ("GLP", "el")}
+        self.tendencias = {
+            c: tendencia.calcular(self.serie(lambda s, c=c: s["nac"].get(c, {}).get("media"), self.nac[c].media), *nombres[c])
+            for c in UI}
+        self.env.globals["tendencias"] = self.tendencias
 
     # ---------- utilidades ----------
 
@@ -156,10 +162,17 @@ class Web:
         noticias = [articulos.escribir(s, historico_completo, self.url)
                     for f, s in sorted(historico_completo.items(), reverse=True)]
         self.env.globals["noticia_hoy"] = noticias[0] if noticias else None
+        try:
+            lista = json.loads((imagenes.FOTOS / "credits.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            lista = []
+        self.creditos_fotos = {Path(c["file"]).name: c for c in lista}
+        self.env.globals["creditos_fotos"] = [c for c in lista if Path(c["file"]).name in imagenes.ENCUADRE]
 
         self.imagenes(noticias)
         self.inicio(noticias)
         self.calculadora()
+        self.ruta()
         for p in self.d.provincias:
             self.provincia(p)
         for m in self.d.municipios:
@@ -169,6 +182,7 @@ class Web:
         self.legales()
         self.datos_json()
         self.ficheros_tecnicos()
+        self.aviso_telegram(noticias[0] if noticias else None)
 
     # ---------- imágenes para compartir y para Google ----------
 
@@ -189,20 +203,24 @@ class Web:
                 return fila(nombre, valor, "igual que ayer")
             return fila(nombre, valor, cts(var), 1 if var > 0 else -1)
 
+        # Una foto real de surtidores o gasolineras, distinta cada día, con el titular y los precios encima.
         for a in noticias:
-            gancho = a.gancho[:1].lower() + a.gancho[1:]
             filas = [fila_var(c, POR_CLAVE[c].nombre, a.medias[c], a.cambios.get(c))
                      for c in ("diesel", "g95") if a.medias.get(c)]
-            imagenes.tarjeta(self.salida / a.imagen.lstrip("/"), "Precio de la gasolina hoy",
-                             f"{a.titular}: {gancho}", filas,
-                             pie=f"Precios oficiales de {numero(a.n_estaciones, 0)} gasolineras · {hora(a.actualizado)}",
-                             etiqueta=etiqueta(a.fecha))
+            foto = imagenes.foto_para(a.fecha.toordinal())
+            a.foto = self.creditos_fotos.get(foto)
+            imagenes.portada_con_foto(self.salida / a.imagen.lstrip("/"), "Precio de la gasolina hoy",
+                                      a.titular, filas, foto, etiqueta=etiqueta(a.fecha))
         medias = [fila_var(c, POR_CLAVE[c].nombre, self.nac[c].media, self.variacion(c))
                   for c in ("diesel", "g95") if self.nac[c].media]
-        imagenes.tarjeta(destino / "portada.jpg", "Precios oficiales de hoy", "Gasolineras baratas cerca de ti",
-                         medias, pie=f"{numero(n, 0)} gasolineras de España · {hora_txt}", etiqueta=etiqueta(self.hoy))
-        imagenes.tarjeta(destino / "calculadora.jpg", "Calculadora de gasolina", "¿Cuánto cuesta tu viaje en coche?",
-                         medias, pie="Con el precio medio de hoy", etiqueta=etiqueta(self.hoy))
+        imagenes.portada_con_foto(destino / "portada.jpg", "Precios oficiales de hoy", "Gasolineras baratas cerca de ti",
+                                  medias, "gas-pump-in-lannion.jpg", etiqueta=etiqueta(self.hoy))
+        imagenes.portada_con_foto(destino / "ruta.jpg", "Gasolineras en tu ruta",
+                                  "¿Dónde repostar más barato en tu viaje?", medias, "gasolinera-en-ceutaa-1.jpg",
+                                  etiqueta=etiqueta(self.hoy))
+        imagenes.portada_con_foto(destino / "calculadora.jpg", "Calculadora de gasolina",
+                                  "¿Cuánto cuesta tu viaje en coche?", medias, "red-gas-pump-handle-in-car-gas.jpg",
+                                  etiqueta=etiqueta(self.hoy))
         for p in self.d.provincias:
             filas = []
             for c in ("diesel", "g95"):
@@ -210,9 +228,12 @@ class Web:
                 if barata:
                     filas.append(fila(f"{POR_CLAVE[c].nombre}, la más barata", barata[0].precios[c],
                                       f"media {precio(resumen(p.estaciones, c).media).replace(' €', '')}"))
-            imagenes.tarjeta(destino / "provincias" / f"{p.slug}.jpg", f"Precio de la gasolina en {p.nombre}",
-                             f"Gasolineras más baratas en {p.nombre} hoy", filas,
-                             pie=f"{numero(len(p.estaciones), 0)} gasolineras · {hora_txt}", etiqueta=etiqueta(self.hoy))
+            imagenes.portada_con_foto(destino / "provincias" / f"{p.slug}.jpg", f"Precio de la gasolina en {p.nombre}",
+                                      f"Gasolineras más baratas en {p.nombre} hoy", filas,
+                                      imagenes.foto_para(int(p.id)), etiqueta=etiqueta(self.hoy))
+
+    def ruta(self):
+        self.escribir("/ruta/", "ruta.html", prioridad="0.8", og_imagen="/imagenes/ruta.jpg")
 
     def calculadora(self):
         precios = {c: self.nac[c].media for c in UI if self.nac[c].media}
@@ -407,14 +428,58 @@ class Web:
         self.escribir("/404.html", "404.html", indexar=False)
 
     def datos_json(self):
-        buscar = [[m.nombre, m.provincia.nombre, self.url(m.ruta), len(m.estaciones)]
+        # [nombre, provincia, url, gasolineras, lat, lon]
+        buscar = [[m.nombre, m.provincia.nombre, self.url(m.ruta), len(m.estaciones),
+                   round(m.lat, 4) if m.lat is not None else None, round(m.lon, 4) if m.lon is not None else None]
                   for m in self.d.municipios]
         self.fichero("buscar.json", json.dumps(buscar, ensure_ascii=False, separators=(",", ":")))
-        # [lat, lon, rótulo, dirección, municipio, url, diésel, 95, 98, GLP, abierta 24 h]
+        # [lat, lon, rótulo, dirección, municipio, url, diésel, 95, 98, GLP, abierta 24 h, semana]
         estaciones = [[round(e.lat, 5), round(e.lon, 5), e.rotulo, e.direccion, e.municipio.nombre,
-                       self.url(e.municipio.ruta)] + [e.precios.get(c) for c in UI] + [1 if e.abierta_24h else 0]
+                       self.url(e.municipio.ruta)] + [e.precios.get(c) for c in UI] + [1 if e.abierta_24h else 0, e.semana]
                       for e in self.d.estaciones if e.lat is not None]
         self.fichero("estaciones.json", json.dumps(estaciones, ensure_ascii=False, separators=(",", ":")))
+
+    def aviso_telegram(self, a):
+        """Prepara el mensaje del día para Telegram (lo publica generador/telegram.py)."""
+        if not a:
+            return
+        from html import escape as h
+
+        def linea_media(c):
+            m, var = self.nac[c].media, self.variacion(c)
+            if var is None or abs(var) < 0.0005:
+                cambio = "igual que ayer" if var is not None else ""
+            else:
+                cambio = f"{'▲' if var > 0 else '▼'} {cts(var)}"
+            return f"{POR_CLAVE[c].nombre}: <b>{precio(m)}/l</b>" + (f" ({cambio})" if cambio else "")
+
+        partes = [f"⛽ <b>{h(a.titulo)}</b>", "", linea_media("diesel"), linea_media("g95"), "",
+                  "<b>El diésel más barato hoy en…</b>"]
+        ciudades, vistas = [], set()
+        for m in sorted(self.d.municipios, key=lambda m: -len(m.estaciones)):
+            if m.provincia.id in vistas or m.provincia.id in FISCALIDAD_ESPECIAL:
+                continue
+            vistas.add(m.provincia.id)
+            e = (mas_baratas(m.estaciones, "diesel", 1) or [None])[0]
+            if e:
+                ciudades.append(f'<a href="{self.abs_url(m.ruta)}">{h(m.nombre)}</a>: {precio(e.precios["diesel"])} · {h(e.rotulo)}')
+            if len(ciudades) == 8:
+                break
+        partes += ciudades
+        t = self.tendencias.get("diesel")
+        if t and t["estado"] != "pocos":
+            partes += ["", f"📈 <b>¿Repostar hoy o esperar?</b> {h(t['titulo'])}. {h(t['texto'])}"]
+        partes += ["", f'👉 <a href="{self.abs_url("/")}">Las más baratas cerca de ti</a> · <a href="{self.abs_url(a.ruta)}">Noticia completa</a>']
+        texto = "\n".join(partes)
+        while len(texto) > 1000 and ciudades:  # límite de Telegram para el pie de una foto
+            partes.remove(ciudades.pop())
+            texto = "\n".join(partes)
+        carpeta = self.salida.parent / "aviso"
+        carpeta.mkdir(exist_ok=True)
+        (carpeta / "telegram.json").write_text(json.dumps({
+            "fecha": a.fecha.isoformat(), "texto": texto,
+            "imagen": str((self.salida / a.imagen.lstrip("/")).resolve()),
+        }, ensure_ascii=False), encoding="utf-8")
 
     def ficheros_tecnicos(self):
         urls = "".join(

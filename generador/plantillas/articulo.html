@@ -19,7 +19,7 @@
   <p class="noticia-sumario">{{ a.descripcion }}</p>
   <figure class="noticia-foto">
     <img src="{{ url(a.imagen) }}" alt="Precio medio en España el {{ a.fecha|fecha_media }}: diésel a {{ a.medias.diesel|precio }} y gasolina 95 a {{ a.medias.g95|precio }} el litro" width="1200" height="675" fetchpriority="high" decoding="async">
-    <figcaption>Precio medio del litro en las gasolineras de España el {{ a.fecha|fecha_media }}. Fuente: Ministerio para la Transición Ecológica.</figcaption>
+    <figcaption>Precio medio del litro en España el {{ a.fecha|fecha_media }}, según el Ministerio para la Transición Ecológica.{% if a.foto %} Foto: <a href="{{ a.foto.page }}" rel="nofollow noopener">«{{ a.foto.title }}»</a>, de {{ a.foto.creator }} ({% if a.foto.licenseUrl %}<a href="{{ a.foto.licenseUrl }}" rel="nofollow noopener">{{ a.foto.license }}</a>{% else %}{{ a.foto.license }}{% endif %}), vía Wikimedia Commons{% if "SA" in a.foto.license %}; la imagen se comparte con la misma licencia{% endif %}.{% endif %}</figcaption>
   </figure>
   <div class="noticia-firma">
     <p><b>Redacción de {{ sitio.nombre }}</b><span><time datetime="{{ a.actualizado.isoformat() }}">{{ a.fecha.strftime('%d/%m/%Y') }} · {{ a.actualizado|hora }}</time> · datos oficiales</span></p>
@@ -29,6 +29,7 @@
       <a href="https://www.facebook.com/sharer/sharer.php?u={{ enlace|urlencode }}" target="_blank" rel="nofollow noopener">Facebook</a>
       <button type="button" data-copiar="{{ enlace }}">Copiar enlace</button>
     </div>
+    {% if sitio.telegram %}<a class="noticia-telegram" href="https://t.me/{{ sitio.telegram.lstrip('@') }}" rel="noopener">Recibe el precio cada mañana en Telegram</a>{% endif %}
   </div>
   <div class="noticia-cuerpo">
     <p class="entradilla">{{ a.entradilla }}</p>

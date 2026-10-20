@@ -19,6 +19,14 @@
 </ul>
 <h2>Limitaciones</h2>
 <p>Las gasolineras pueden cambiar sus precios en cualquier momento y a veces tardan en comunicarlos. Los precios no incluyen descuentos de tarjetas de fidelización ni promociones. Confirma siempre el precio en el surtidor antes de repostar.</p>
+{% if creditos_fotos %}
+<h2>Fotos</h2>
+<p>Las imágenes de las noticias combinan los precios del día con fotos de Wikimedia Commons de licencia libre:</p>
+<ul>
+{% for c in creditos_fotos %}  <li><a href="{{ c.page }}" rel="nofollow noopener">«{{ c.title }}»</a>, de {{ c.creator }}, {% if c.licenseUrl %}<a href="{{ c.licenseUrl }}" rel="nofollow noopener">{{ c.license }}</a>{% else %}{{ c.license }}{% endif %}.</li>
+{% endfor %}</ul>
+<p>Las imágenes hechas con fotos de licencia CC BY-SA se comparten bajo esa misma licencia.</p>
+{% endif %}
 {% if sitio.email %}<h2>Contacto</h2><p>Puedes escribirnos a <a href="mailto:{{ sitio.email }}">{{ sitio.email }}</a>.</p>{% endif %}
 </article>
 {% endblock %}

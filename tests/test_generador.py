@@ -124,7 +124,7 @@ def test_web_completa(bruto, tmp_path):
     assert (salida / "ads.txt").read_text().startswith("google.com, pub-123, DIRECT")
     assert (salida / "noticias/2026-10-20-precio-gasolina-diesel-hoy/index.html").exists()
     buscar = json.loads((salida / "buscar.json").read_text(encoding="utf-8"))
-    assert ["Madrid", "Madrid", "/sub/gasolineras/madrid/madrid/", 22] in buscar
+    assert ["Madrid", "Madrid", "/sub/gasolineras/madrid/madrid/", 22] in [x[:4] for x in buscar]
 
 
 def test_interfaz_por_combustible(bruto, tmp_path):
@@ -144,3 +144,24 @@ def test_interfaz_por_combustible(bruto, tmp_path):
     # Madrid no tiene GLP: lo dice en vez de dejar un hueco.
     assert "Ninguna gasolinera en Madrid vende GLP" in html
     assert html.count('class="estacion"') == 22
+
+
+def test_horario_semanal():
+    from generador.horario import semana
+    assert semana("L-D: 24H") == "24"
+    assert semana("L-D: 06:00-22:00") == "360-1320"
+    assert semana("L-V: 06:00-22:00; S-D: 07:00-22:00").split("|")[5] == "420-1320"
+    assert semana("L-S: 07:00-14:00 y 16:00-21:00").split("|")[6] == ""  # el domingo, cerrada
+    assert semana("L-D: 22:00-06:00") == "1320-1800"  # cruza la medianoche
+    assert semana("texto raro") is None
+
+
+def test_tendencia():
+    from datetime import date, timedelta
+    from generador.tendencia import calcular
+    hoy = date(2026, 10, 20)
+    sube = calcular([(hoy - timedelta(days=i), 1.80 + 0.003 * (10 - i)) for i in range(10, -1, -1)], "diésel")
+    assert sube["estado"] == "sube" and "no esperes" in sube["texto"]
+    baja = calcular([(hoy - timedelta(days=i), 1.80 - 0.003 * (10 - i)) for i in range(10, -1, -1)], "diésel")
+    assert baja["estado"] == "baja"
+    assert calcular([(hoy, 1.8)], "diésel")["estado"] == "pocos"

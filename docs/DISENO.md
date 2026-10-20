@@ -51,6 +51,29 @@ En el móvil, la tarjeta de tu zona va justo después del combustible, y los lit
   (los municipios usan la de su provincia). Se declaran en `og:image`, en el `NewsArticle` y con
   `max-image-preview:large`, que es lo que Google necesita para enseñarlas en los resultados.
 
+## Herramientas prácticas
+
+- **Abierta ahora** (`generador/horario.py`): el horario del Ministerio se convierte en una semana compacta
+  y el navegador dice si cada gasolinera está abierta, a qué hora cierra o cuándo abre. Hay un filtro
+  «Abiertas ahora» en la portada, en la ruta y en cada municipio. Si la más barata está cerrada, se avisa de
+  la más barata abierta.
+- **Mapa de precios** (Leaflet con OpenStreetMap, solo se carga al pulsar «Mapa»): cada gasolinera con su
+  precio encima, las tres más baratas en verde.
+- **Ruta** (`/ruta/`): origen y destino, con el camino por carretera del servicio público de OSRM. Muestra
+  las gasolineras a 1, 3 o 5 km del camino, la más barata, dónde parar tramo a tramo (cada 100 km) y lo que
+  cuesta la gasolina del viaje.
+- **¿Repostar hoy o esperar?** (`generador/tendencia.py`): la tendencia de los últimos 7 días y, con tres
+  semanas de histórico, el día de la semana más barato. En la portada, en la noticia y en Telegram.
+- **Telegram** (`generador/telegram.py`): aviso diario en un canal (ver docs/GUIA.md, paso 5).
+- **Barra fija en el móvil**: «Cerca de mí», «Buscar», «Ruta», «Calculadora» y «Noticias».
+
+## Imágenes de las noticias
+
+Foto real de surtidores o gasolineras a la derecha, con el titular y los precios del día sobre el amarillo de
+la marca (`imagenes.portada_con_foto`). La foto cambia cada día; las provincias tienen la suya. Fotos de
+Wikimedia Commons con licencia libre, en `generador/fotos/` con sus créditos (`credits.json`), que se
+muestran al pie de la foto de cada noticia y en «Sobre esta web».
+
 ## Calculadora
 
 `/calculadora/`: lo que cuesta un viaje (kilómetros, ida y vuelta, consumo, precio y personas que pagan)
@@ -72,8 +95,7 @@ con el precio medio de hoy del combustible elegido, y lo que cuesta llenar el de
   - la zona se guarda en el navegador (`rb-lugar`): el municipio o la ubicación redondeada a unos 100 m;
   - si el navegador ya tenía permiso de ubicación, se usa sola al entrar;
   - sin JavaScript se muestran el diésel y los enlaces a cada ciudad.
-- **Sin fotos ni vídeo:** las imágenes de gasolineras antiguas no ayudaban a nadie. La pieza visual es la
-  propia lista de precios.
+- **Fotos solo donde informan:** en las imágenes de las noticias, nunca como decoración de la portada.
 
 ## Herramientas
 

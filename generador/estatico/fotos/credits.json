@@ -1,0 +1,100 @@
+[
+ {
+  "file": "generador/estatico/fotos/gasolinera-gesa-madrid-01.jpg",
+  "media": "image",
+  "ref": "commons:16784305",
+  "title": "Gasolinera Gesa (Madrid) 01",
+  "creator": "Luis García ( Zaqarbal )",
+  "creatorUrl": null,
+  "date": "2011-05-28",
+  "license": "CC BY-SA 3.0",
+  "licenseCode": "by-sa",
+  "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+  "creditRequired": true,
+  "page": "https://commons.wikimedia.org/wiki/File:Gasolinera_Gesa_(Madrid)_01.jpg",
+  "via": "Wikimedia Commons",
+  "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/66/Gasolinera_Gesa_%28Madrid%29_01.jpg/1920px-Gasolinera_Gesa_%28Madrid%29_01.jpg",
+  "width": 1920,
+  "height": 1934,
+  "bytes": 920496,
+  "credit": "\"Gasolinera Gesa (Madrid) 01\" by Luis García ( Zaqarbal ), CC BY-SA 3.0, via Wikimedia Commons",
+  "notes": [
+   "Share-alike: an altered version (recoloured, combined with other pictures) must be shared under the same licence."
+  ],
+  "saved": "2026-10-20T15:54:38.283Z"
+ },
+ {
+  "file": "generador/estatico/fotos/gasolinera-de-campsa-portillo-valladolid.jpg",
+  "media": "image",
+  "ref": "commons:3571377",
+  "title": "Gasolinera de CAMPSA, Portillo, Valladolid",
+  "creator": "Rastrojo ( D • ES )",
+  "creatorUrl": null,
+  "date": null,
+  "license": "CC BY-SA 4.0",
+  "licenseCode": "by-sa",
+  "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+  "creditRequired": true,
+  "page": "https://commons.wikimedia.org/wiki/File:Gasolinera_de_CAMPSA,_Portillo,_Valladolid.JPG",
+  "via": "Wikimedia Commons",
+  "image": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Gasolinera_de_CAMPSA%2C_Portillo%2C_Valladolid.JPG",
+  "width": 1632,
+  "height": 1224,
+  "bytes": 300445,
+  "credit": "\"Gasolinera de CAMPSA, Portillo, Valladolid\" by Rastrojo ( D • ES ), CC BY-SA 4.0, via Wikimedia Commons",
+  "notes": [
+   "Share-alike: an altered version (recoloured, combined with other pictures) must be shared under the same licence."
+  ],
+  "saved": "2026-10-20T15:54:40.657Z"
+ },
+ {
+  "file": "generador/estatico/fotos/gasolinera-campsa-abandonada.jpg",
+  "media": "image",
+  "ref": "commons:117601077",
+  "title": "Gasolinera Campsa abandonada",
+  "creator": "Angel Muñoz - AM2 Fotografia",
+  "creatorUrl": null,
+  "date": "2013-02-06",
+  "license": "CC BY-SA 2.0",
+  "licenseCode": "by-sa",
+  "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+  "creditRequired": true,
+  "page": "https://commons.wikimedia.org/wiki/File:Gasolinera_Campsa_abandonada.jpg",
+  "via": "Wikimedia Commons",
+  "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Gasolinera_Campsa_abandonada.jpg/1920px-Gasolinera_Campsa_abandonada.jpg",
+  "width": 1920,
+  "height": 1440,
+  "bytes": 657902,
+  "credit": "\"Gasolinera Campsa abandonada\" by Angel Muñoz - AM2 Fotografia, CC BY-SA 2.0, via Wikimedia Commons",
+  "notes": [
+   "Share-alike: an altered version (recoloured, combined with other pictures) must be shared under the same licence."
+  ],
+  "saved": "2026-10-20T15:54:41.236Z"
+ },
+ {
+  "file": "generador/estatico/fotos/autovia-m-23-torrespana-madrid-espana-2021.webm",
+  "media": "video",
+  "poster": "generador/estatico/fotos/autovia-m-23-torrespana-madrid-espana-2021-poster.jpg",
+  "ref": "commons:99896186",
+  "title": "Autovía M-23, Torrespaña, Madrid, España, 2021",
+  "creator": "Benjamín Núñez González",
+  "creatorUrl": null,
+  "date": "2021-02-15",
+  "license": "CC BY-SA 4.0",
+  "licenseCode": "by-sa",
+  "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+  "creditRequired": true,
+  "page": "https://commons.wikimedia.org/wiki/File:Autov%C3%ADa_M-23,_Torrespa%C3%B1a,_Madrid,_Espa%C3%B1a,_2021.webm",
+  "via": "Wikimedia Commons",
+  "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/3/3b/Autov%C3%ADa_M-23%2C_Torrespa%C3%B1a%2C_Madrid%2C_Espa%C3%B1a%2C_2021.webm/Autov%C3%ADa_M-23%2C_Torrespa%C3%B1a%2C_Madrid%2C_Espa%C3%B1a%2C_2021.webm.480p.vp9.webm",
+  "width": 854,
+  "height": 480,
+  "duration": 10,
+  "bytes": 1460169,
+  "credit": "\"Autovía M-23, Torrespaña, Madrid, España, 2021\" by Benjamín Núñez González, CC BY-SA 4.0, via Wikimedia Commons",
+  "notes": [
+   "Share-alike: an altered version (recoloured, combined with other pictures) must be shared under the same licence."
+  ],
+  "saved": "2026-10-20T15:56:44.324Z"
+ }
+]

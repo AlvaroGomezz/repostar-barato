@@ -12,12 +12,13 @@
 <meta property="og:url" content="{{ abs_url(ruta) }}">
 <meta property="og:site_name" content="{{ sitio.nombre }}">
 <meta property="og:locale" content="es_ES">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#dedad3">
 {% if sitio.search_console %}<meta name="google-site-verification" content="{{ sitio.search_console }}">{% endif %}
 <script>
 /* Combustible y depósito elegidos: de la URL (?c=g95) o de la última visita. Antes de pintar, sin parpadeo. */
 (function () {
   var d = document.documentElement, c = null, l = null;
+  d.className += " js";
   try { c = new URLSearchParams(location.search).get("c") || localStorage.getItem("rb-comb"); l = localStorage.getItem("rb-litros"); } catch (e) {}
   if (/^(diesel|g95|g98|glp)$/.test(c || "")) d.setAttribute("data-comb", c);
   if (/^(30|40|50|60|70)$/.test(l || "")) d.setAttribute("data-litros", l);
@@ -25,7 +26,7 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="icon" href="{{ url('/estatico/icono.svg') }}" type="image/svg+xml">
 <link rel="stylesheet" href="{{ url('/estatico/estilo.css') }}?v={{ actualizado.strftime('%Y%m%d%H%M') }}">
 {% if sitio.adsense %}
@@ -33,28 +34,23 @@
 {% endif %}
 {% block cabeza %}{% endblock %}
 </head>
-<body>
+<body class="{% block clase_body %}interior{% endblock %}">
 <a class="saltar" href="#contenido">Saltar al contenido</a>
+{% import "macros.html" as mcb with context %}
+{% block barra %}
 <header class="barra">
   <div class="marco barra-fila">
-    <a class="marca" href="{{ url('/') }}" translate="no">
-      <svg class="marca-simbolo" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><rect x="4" y="1.5" width="16" height="21" rx="3" fill="currentColor"/><rect x="7" y="5" width="10" height="3" rx="1" fill="#1d5fbf"/><rect x="7" y="10.5" width="10" height="2.5" rx="1" fill="#fff"/><rect x="7" y="15.5" width="10" height="2.5" rx="1" fill="#fff"/></svg>
-      <span>{{ sitio.nombre }}</span>
-    </a>
+    <a class="marca" href="{{ url('/') }}" translate="no">{{ mcb.simbolo() }}<span>{{ sitio.nombre }}</span></a>
     <nav class="menu" aria-label="Principal">
       <a href="{{ url('/') }}#provincias">Provincias</a>
       <a href="{{ url('/marcas/') }}"{% if ruta.startswith('/marcas/') %} aria-current="page"{% endif %}>Marcas</a>
       <a href="{{ url('/noticias/') }}"{% if ruta.startswith('/noticias/') %} aria-current="page"{% endif %}>Noticias</a>
     </nav>
-    <button class="barra-menu" type="button" data-abrir-menu aria-expanded="false" aria-controls="menu-movil" aria-label="Menú">
-      <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-    </button>
-    {% if ruta != "/" %}
+    <button class="barra-menu" type="button" data-abrir-menu aria-expanded="false" aria-controls="menu-movil">Menú</button>
     <button class="barra-buscar" type="button" data-abrir-busqueda aria-expanded="false" aria-controls="busqueda-barra" aria-label="Buscar municipio">
       <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       <span>Buscar municipio</span>
     </button>
-    {% endif %}
   </div>
   <nav class="menu-movil" id="menu-movil" aria-label="Principal" hidden>
     <div class="marco">
@@ -64,7 +60,6 @@
       <a href="{{ url('/noticias/') }}">Noticias</a>
     </div>
   </nav>
-  {% if ruta != "/" %}
   <div class="busqueda-barra" id="busqueda-barra" hidden>
     <div class="marco">
       <form class="buscador" role="search" action="{{ url('/') }}" onsubmit="return false">
@@ -74,22 +69,46 @@
       </form>
     </div>
   </div>
-  {% endif %}
 </header>
-<main id="contenido" class="marco">
+{% endblock %}
+<main id="contenido"{% block clase_main %} class="marco"{% endblock %}>
 {% block contenido %}{% endblock %}
 </main>
 <footer class="pie">
-  <div class="marco">
-    <p class="pie-nombre" translate="no">{{ sitio.nombre }}</p>
-    <p>Precios oficiales del <a href="https://geoportalgasolineras.es/" rel="nofollow noopener">Geoportal de Hidrocarburos</a> del Ministerio para la Transición Ecológica, actualizados el {{ actualizado|fecha_media }} a las {{ actualizado|hora }}. Son orientativos: confirma el precio en el surtidor.</p>
-    <nav class="pie-enlaces" aria-label="Legal">
+  <div class="teselas">
+    <div class="tesela t-frase">
+      <p class="t-grande">Los precios oficiales de las {{ n_total|numero(0) }} gasolineras de España, actualizados a las {{ actualizado|hora }}.</p>
+      <p class="t-legal">Fuente: Geoportal de Hidrocarburos, Ministerio para la Transición Ecológica y el Reto Demográfico. Son orientativos: confirma el precio en el surtidor.</p>
+    </div>
+    <nav class="tesela t-nav" aria-label="Más páginas">
+      <a href="{{ url('/') }}#provincias">Provincias</a>
+      <a href="{{ url('/marcas/') }}">Marcas</a>
+      <a href="{{ url('/noticias/') }}">Noticias</a>
       <a href="{{ url('/sobre/') }}">Sobre esta web</a>
       <a href="{{ url('/aviso-legal/') }}">Aviso legal</a>
       <a href="{{ url('/privacidad/') }}">Privacidad</a>
       <a href="{{ url('/cookies/') }}">Cookies</a>
     </nav>
+    <figure class="tesela t-foto">
+      <img src="{{ url('/estatico/fotos/gasolinera-gesa-madrid-01.jpg') }}" alt="Marquesina blanca de la gasolinera Gesa, en la calle Alberto Aguilera de Madrid" width="900" height="907" loading="lazy" decoding="async">
+      <figcaption>Gasolinera Gesa, Madrid. Proyecto de Casto Fernández-Shaw, 1927.</figcaption>
+    </figure>
+    {% if noticia_hoy %}
+    <a class="tesela t-noticia" href="{{ url(noticia_hoy.ruta) }}">
+      <span class="t-pequena">Noticia de hoy</span>
+      <span class="t-media">{{ noticia_hoy.gancho }}</span>
+      <span class="t-pequena">{{ noticia_hoy.titular }}</span>
+    </a>
+    {% endif %}
+    <div class="tesela t-marca" translate="no" aria-hidden="true"><span>{{ sitio.nombre }}</span></div>
+    <a class="tesela t-accion" href="{{ url('/') }}#poste">
+      <span class="t-media">Busca tu gasolinera</span>
+      <svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true"><path d="M8 40 40 8M16 8h24v24" fill="none" stroke="currentColor" stroke-width="4"/></svg>
+    </a>
   </div>
+  {% if creditos %}
+  <p class="creditos">Fotos y vídeo: {% for c in creditos %}<a href="{{ c.page }}" rel="nofollow noopener">«{{ c.title }}»</a>, de {{ c.creator }}, {% if c.licenseUrl %}<a href="{{ c.licenseUrl }}" rel="nofollow noopener">{{ c.license }}</a>{% else %}{{ c.license }}{% endif %}, vía Wikimedia Commons{{ "; " if not loop.last else "." }}{% endfor %}</p>
+  {% endif %}
 </footer>
 <script>window.BASE = {{ sitio.base|tojson }};</script>
 <script src="{{ url('/estatico/app.js') }}?v={{ actualizado.strftime('%Y%m%d%H%M') }}" defer></script>

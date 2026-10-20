@@ -1,101 +1,223 @@
 {% extends "base.html" %}
 {% import "macros.html" as mc with context %}
 {% block titulo %}Precio de la gasolina y el diésel hoy · Gasolineras más baratas de España{% endblock %}
-{% block descripcion %}Precio medio hoy: diésel {{ info.diesel.nac.media|precio }}/l y gasolina 95 {{ info.g95.nac.media|precio }}/l. Busca la gasolinera más barata de tu municipio o cerca de ti entre {{ n_estaciones|numero(0) }} gasolineras.{% endblock %}
+{% block descripcion %}Precio medio hoy: diésel {{ cifras[0].media|precio }}/l. Busca la gasolinera más barata de tu municipio o cerca de ti entre las {{ n_estaciones|numero(0) }} gasolineras de España, con precios oficiales.{% endblock %}
 {% block cabeza %}
 <script type="application/ld+json">{{ {"@context": "https://schema.org", "@type": "WebSite", "name": sitio.nombre, "url": abs_url("/")}|tojson }}</script>
 {% endblock %}
+{% block clase_body %}portada{% endblock %}
+{% block clase_main %}{% endblock %}
+{% block barra %}{% endblock %}
 {% block contenido %}
-<section class="portada" aria-labelledby="portada-t">
-  <h1 id="portada-t">Encuentra la gasolinera más barata</h1>
-  <p class="subtitulo">{{ n_estaciones|numero(0) }} gasolineras de España con precios oficiales · {{ mc.frescura() }}</p>
-  <div class="portada-acciones">
-    <form class="buscador grande" role="search" onsubmit="return false">
-      <label class="oculto" for="q">Busca tu municipio</label>
-      <svg class="buscador-icono" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-      <input id="q" name="q" type="search" placeholder="Tu municipio, p. ej. Alcobendas…" autocomplete="off" spellcheck="false" data-buscador role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug-portada">
-      <ul class="sugerencias" id="sug-portada" role="listbox" aria-label="Municipios" data-sugerencias hidden></ul>
-    </form>
-    <span class="portada-o">o</span>
-    <button class="boton" type="button" data-cerca>
-      <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M10 18s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10Z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="10" cy="8" r="2.2" fill="currentColor"/></svg>
-      Usar mi ubicación
-    </button>
-  </div>
-</section>
+{% set p = poste %}
 
-{# Los precios medios hacen de selector de combustible. #}
-<nav class="kpis selector-kpis" aria-label="Combustible">
-  {% for c in UI %}{% set i = info[c] %}
-  <a href="?c={{ c }}" data-elegir="{{ c }}" class="kpi">
-    <span class="kpi-etiqueta">{{ C[c].nombre }}</span>
-    <span class="kpi-valor">{{ i.nac.media|cifra }}</span>
-    <span class="kpi-delta">{% if i.var is none %}media de España{% elif i.var > 0.0005 %}<span class="sube">▲ {{ i.var|cts }}</span> desde ayer{% elif i.var < -0.0005 %}<span class="baja">▼ {{ i.var|cts }}</span> desde ayer{% else %}igual que ayer{% endif %}</span>
-  </a>
-  {% endfor %}
-</nav>
-
-<section class="bloque" data-cerca-bloque hidden aria-labelledby="cerca-t">
-  <div class="bloque-cabecera">
-    <h2 id="cerca-t">Las más baratas a menos de 10 km de ti</h2>
-    <button type="button" class="boton-sec" data-cerca-cerrar>Cerrar</button>
-  </div>
-  <div data-cerca-resultado aria-live="polite"></div>
-</section>
-
-<div class="rejilla-2">
-  <section class="bloque" aria-labelledby="top-t">
-    <h2 id="top-t">Las más baratas de la Península hoy</h2>
-    {{ mc.ranking(info, "top", mostrar_prov=true) }}
-  </section>
-  <div class="columna">
-    {% for c in UI %}{% set i = info[c] %}
-    <section class="bloque" data-c="{{ c }}" aria-label="Provincias">
-      <h2>Por provincias</h2>
-      {% if i.prov_barata %}
-      <p class="frase">La más barata es <a href="{{ url(i.prov_barata.p.ruta) }}">{{ i.prov_barata.p.nombre }}</a>, con una media de <b class="dato">{{ i.prov_barata.medias[c]|precio }}</b>; la más cara, <a href="{{ url(i.prov_cara.p.ruta) }}">{{ i.prov_cara.p.nombre }}</a>, con {{ i.prov_cara.medias[c]|precio }}.</p>
-      <p class="nota">Sin Canarias, Ceuta y Melilla, que tienen impuestos más bajos.</p>
-      {% endif %}
-    </section>
-    {% endfor %}
-    {{ mc.evolucion(info, "Precio medio en la Península") }}
-  </div>
-</div>
-
-<section class="bloque" id="provincias" aria-labelledby="prov-t">
-  <div class="bloque-cabecera">
-    <h2 id="prov-t">Precio medio en las 52 provincias</h2>
-    <div class="herramientas">
-      <button type="button" class="boton-sec" data-ordenar-lista="provincias-lista" aria-pressed="false">Ordenar por precio</button>
+{# ---------- 1. El poste de precios: el buscador ---------- #}
+<section class="heroe" id="poste" aria-labelledby="heroe-t">
+  <div class="heroe-izq">
+    <a class="heroe-logo" href="{{ url('/') }}" translate="no">{{ mc.simbolo() }}<span>{{ sitio.nombre }}</span></a>
+    <div class="heroe-texto">
+      <h1 id="heroe-t" class="lineas"><span class="linea"><span data-linea style="--i:0">Encuentra la gasolinera</span></span> <span class="linea"><span data-linea style="--i:1">más barata</span></span></h1>
+      <p class="heroe-frase">Los precios oficiales de las {{ n_estaciones|numero(0) }} gasolineras de España. Escribe tu pueblo en el poste o deja que busquemos la más barata a tu alrededor.</p>
+      <button class="boton-claro" type="button" data-poste-ubicacion>
+        <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M10 18s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10Z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="10" cy="8" r="2.2" fill="currentColor"/></svg>
+        Usar mi ubicación
+      </button>
     </div>
   </div>
-  <ul class="filas columnas-2" id="provincias-lista">
-  {% for x in provincias %}
-    <li class="fila" data-tiene="{% for c in UI %}{% if x.medias[c] %}{{ c }} {% endif %}{% endfor %}"{% for c in UI %}{% if x.medias[c] %} data-{{ c }}="{{ x.medias[c] }}"{% endif %}{% endfor %}>
-      <a href="{{ url(x.p.ruta) }}"><strong>{{ x.p.nombre }}</strong><span>{{ x.n|numero(0) }} gasolineras</span></a>
-      <span class="fila-precio">{% for c in UI %}<span data-c="{{ c }}">{% if x.medias[c] %}{{ x.medias[c]|cifra }}{% else %}<span class="sin-dato">—</span>{% endif %}</span>{% endfor %}</span>
-    </li>
-  {% endfor %}
-  </ul>
-</section>
-
-{% if noticias %}
-<section class="bloque" aria-labelledby="noticias-t">
-  <div class="bloque-cabecera">
-    <h2 id="noticias-t">Noticias del precio, día a día</h2>
-    <a class="enlace-sec" href="{{ url('/noticias/') }}">Ver todas</a>
+  <div class="heroe-der">
+    <nav class="heroe-nav" aria-label="Principal">
+      <a href="#provincias">Provincias</a>
+      <a href="{{ url('/marcas/') }}">Marcas</a>
+      <a href="{{ url('/noticias/') }}">Noticias</a>
+    </nav>
+    <div class="poste" data-ui data-poste>
+      <div class="poste-cabeza">
+        <p class="poste-contexto" data-poste-contexto>La más barata de la Península, ahora</p>
+        <p class="poste-rotulo" data-poste-rotulo translate="no">{{ p.rotulo }}</p>
+        <p class="poste-lugar" data-poste-lugar>{{ p.direccion }} · <a href="{{ url(p.municipio.ruta) }}">{{ p.municipio.nombre }}</a>, {{ p.municipio.provincia.nombre }}</p>
+      </div>
+      <ul class="poste-filas" aria-label="Precios por litro">
+        {% for c in UI %}
+        <li><a href="?c={{ c }}" data-elegir="{{ c }}" class="poste-fila">
+          <span class="poste-comb">{{ C[c].nombre }}</span>
+          <span class="poste-cifra" data-poste-precio="{{ c }}">{% if p.precios.get(c) %}{{ "%.3f"|format(p.precios[c])|replace(".", ",") }}{% else %}—{% endif %}</span>
+        </a></li>
+        {% endfor %}
+      </ul>
+      <form class="poste-buscar buscador" role="search" onsubmit="return false">
+        <label class="oculto" for="q">Busca tu municipio</label>
+        <svg class="buscador-icono" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <input id="q" name="q" type="search" placeholder="¿Dónde vas a repostar?" autocomplete="off" spellcheck="false" data-buscador data-poste-buscar role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug-poste">
+        <ul class="sugerencias" id="sug-poste" role="listbox" aria-label="Municipios" data-sugerencias hidden></ul>
+      </form>
+      <p class="poste-pie" aria-live="polite">
+        <span data-poste-nota>€ por litro · precios de las {{ actualizado|hora }}</span>
+        <span class="poste-enlaces">
+          <a data-poste-ver href="{{ url(p.municipio.ruta) }}">Ver todas</a>
+          {% if p.mapa %}<a data-poste-ir href="{{ p.mapa }}" target="_blank" rel="nofollow noopener">Cómo llegar</a>{% endif %}
+        </span>
+      </p>
+    </div>
   </div>
-  <ul class="noticias">
-  {% for a in noticias %}
-    <li><a href="{{ url(a.ruta) }}"><time datetime="{{ a.fecha.isoformat() }}">{{ a.fecha|fecha_larga }}</time><span>{{ a.titular }}: {{ a.gancho|lower }}</span></a></li>
-  {% endfor %}
-  </ul>
 </section>
-{% endif %}
 
-<section class="bloque texto" aria-labelledby="como-t">
-  <h2 id="como-t">De dónde salen los precios</h2>
-  <p>Todas las gasolineras de España están obligadas a comunicar sus precios al Ministerio para la Transición Ecológica. {{ sitio.nombre }} recoge esos datos oficiales varias veces al día y los ordena para que encuentres en segundos la gasolinera más barata de tu municipio, de tu provincia o cerca de donde estás.</p>
-  <p>Entre la gasolinera más cara y la más barata de una misma ciudad suele haber más de 10 céntimos por litro: en un depósito de {{ deposito }} litros, más de 5 € cada vez que repostas.</p>
+{# ---------- 2. Cuánto cuesta hoy un litro ---------- #}
+<section class="cifras" aria-labelledby="cifras-t">
+  <div class="cifras-izq">
+    <h2 id="cifras-t" class="titular-seccion" data-reveal><span class="suave">Hoy, en España,</span> un litro cuesta</h2>
+    <figure class="foto obturador">
+      <img src="{{ url('/estatico/fotos/gasolinera-campsa-abandonada.jpg') }}" alt="Marquesina oxidada de una antigua gasolinera de CAMPSA, con su logotipo azul" width="1400" height="1050" loading="lazy" decoding="async">
+      <figcaption>Una antigua gasolinera de CAMPSA, la red que vendió el combustible en España durante el monopolio.</figcaption>
+    </figure>
+  </div>
+  <div class="cifras-lista">
+    {% for x in cifras %}
+    {% set txt = "%.3f"|format(x.media) %}
+    <div class="cifra-fila" data-reveal style="--i:{{ loop.index0 }}">
+      <span class="c-ent" data-roll>{{ txt.split(".")[0] }}</span><span class="c-dec">,<span data-roll>{{ txt.split(".")[1] }}</span></span>
+      <p class="c-texto"><b>{{ C[x.c].nombre }}</b>, euros por litro de media.<br>{% if x.var is none %}En {{ x.n|numero(0) }} gasolineras.{% elif x.var > 0.0005 or x.var < -0.0005 %}{{ x.var|cts }} desde ayer.{% else %}Igual que ayer.{% endif %}</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+{# ---------- 3. El hallazgo, sobre la autovía ---------- #}
+<section class="banda" aria-labelledby="banda-t">
+  <video class="banda-video" muted loop playsinline preload="none" aria-hidden="true" poster="{{ url('/estatico/fotos/autovia-m-23-torrespana-madrid-espana-2021-poster.jpg') }}" data-video>
+    <source src="{{ url('/estatico/fotos/autovia-m-23-torrespana-madrid-espana-2021.webm') }}" type="video/webm">
+  </video>
+  <div class="banda-texto">
+    <h2 id="banda-t" class="titular-seccion">Elegir bien, cada vez</h2>
+    <p class="banda-dato">En una misma ciudad, la gasolinera más cara cobra de media {{ "%.1f"|format(hallazgo.cts)|replace(".", ",") }} céntimos más por litro de diésel que la más barata: {{ hallazgo.euros|precio(2) }} por depósito.</p>
+    <p class="banda-nota">Media de los {{ hallazgo.n|numero(0) }} municipios con cinco gasolineras o más. En la imagen, la autovía M-23 de Madrid.</p>
+  </div>
+</section>
+
+{# ---------- 4. El producto, funcionando con los datos de un pueblo real ---------- #}
+{% set m = pieza.m %}{% set r = pieza.r %}
+<section class="escaparate" aria-labelledby="esc-t" data-escaparate-seccion>
+  <div class="esc-escenario">
+  <div class="esc-texto">
+    <h2 id="esc-t" class="titular-seccion">Así se ve {{ m.nombre }} hoy</h2>
+    <p class="esc-nombre" data-esc-nombre aria-live="polite">Todas, de más barata a más cara</p>
+    <p class="esc-detalle" data-esc-texto>Cada gasolinera con su precio, lo que cuesta de más frente a la más barata y el camino para llegar.</p>
+    <p class="esc-cuenta" data-esc-cuenta>1 de 5</p>
+    <a class="enlace-flecha" href="{{ url(m.ruta) }}">Ver las {{ m.estaciones|length }} gasolineras de {{ m.nombre }}</a>
+  </div>
+  <div class="esc-pista" data-escaparate tabindex="0" aria-label="Piezas de la web con los datos de {{ m.nombre }}">
+    <article class="pieza" data-ui data-nombre="Todas, de más barata a más cara" data-texto="Cada gasolinera con su precio, lo que cuesta de más frente a la más barata y el camino para llegar.">
+      <p class="pieza-titulo">Gasolineras en {{ m.nombre }} · diésel</p>
+      <ol class="pieza-lista">
+        {% for f in pieza.filas %}
+        <li><span class="pl-id"><b translate="no">{{ f.e.rotulo }}</b><span>{{ f.e.direccion }}</span></span><span class="pl-precio{% if f.barata.diesel %} es-barata{% endif %}">{{ f.precios.diesel|cifra }}<small>{% if f.barata.diesel %}la más barata{% else %}{{ f.dif.diesel|cts }}{% endif %}</small></span><span class="pl-ir">Ir</span></li>
+        {% endfor %}
+      </ol>
+    </article>
+    <article class="pieza" data-ui data-nombre="La escalera de precios" data-texto="Una marca por gasolinera, de la más barata a la más cara. De un vistazo sabes si en tu pueblo compensa elegir.">
+      <p class="pieza-titulo">Los {{ r.n }} precios del diésel en {{ m.nombre }}</p>
+      {{ pieza.escalera }}
+      <p class="pieza-nota">La más barata, <span translate="no">{{ r.mas_barata.rotulo }}</span>, a {{ r.minimo|precio }}. La media, {{ r.media|precio }}.</p>
+    </article>
+    <article class="pieza" data-ui data-nombre="Lo que ahorras" data-texto="Elige los litros que echas y te decimos lo que pagas en la más barata y en la más cara.">
+      <p class="pieza-titulo">Llenar el depósito en {{ m.nombre }}</p>
+      {{ mc.litros() }}
+      <p class="pieza-ahorro" data-ahorro data-min="{{ r.minimo }}" data-max="{{ r.maximo }}">
+        <span><small>En la más barata</small><b data-coste="min">{{ (r.minimo * deposito)|precio(2) }}</b></span>
+        <span><small>En la más cara</small><b data-coste="max">{{ (r.maximo * deposito)|precio(2) }}</b></span>
+        <span class="pa-total"><small>Ahorras</small><b data-coste="ahorro">{{ ((r.maximo - r.minimo) * deposito)|precio(2) }}</b></span>
+      </p>
+    </article>
+    <article class="pieza" data-ui data-nombre="Las más cercanas" data-texto="Con tu ubicación, la lista se ordena por distancia y te lleva a la que elijas.">
+      <p class="pieza-titulo">Desde el centro de {{ m.nombre }}</p>
+      <ol class="pieza-lista">
+        {% for e, d in pieza.cerca %}
+        <li><span class="pl-id"><b translate="no">{{ e.rotulo }}</b><span>a {{ d|numero(1) }} km · {{ e.direccion }}</span></span><span class="pl-precio">{{ e.precios.diesel|cifra }}</span><span class="pl-ir">Ir</span></li>
+        {% endfor %}
+      </ol>
+    </article>
+    <article class="pieza" data-ui data-nombre="Tu combustible" data-texto="Diésel, 95, 98 o GLP. Lo eliges una vez y toda la web te enseña tus precios.">
+      <p class="pieza-titulo">¿Qué echas?</p>
+      {{ mc.selector() }}
+      <p class="pieza-nota">La web lo recuerda en tu próxima visita.</p>
+    </article>
+  </div>
+  </div>
+</section>
+
+{# ---------- 5. Las más baratas, por combustible ---------- #}
+<section class="agenda" aria-labelledby="agenda-t">
+  <div class="agenda-cab">
+    <h2 id="agenda-t" class="titular-seccion"><span class="suave">Las más baratas</span> de la Península hoy</h2>
+    <button class="boton" type="button" data-poste-ubicacion>Usar mi ubicación</button>
+  </div>
+  <div class="agenda-cuerpo">
+    <nav class="agenda-tabs" aria-label="Combustible">
+      {% for x in cifras %}<a href="?c={{ x.c }}" data-elegir="{{ x.c }}" class="agenda-tab"><span>{{ C[x.c].nombre }}</span><small>media {{ x.media|precio }}</small></a>{% endfor %}
+    </nav>
+    <div class="agenda-bandas">
+      {% for c in UI %}
+      <ol class="bandas" data-c="{{ c }}">
+        {% for e in top[c] %}
+        <li class="banda-fila" data-reveal style="--i:{{ loop.index0 }}">
+          <span class="b-precio">{{ e.precios[c]|cifra }}</span>
+          <span class="b-id"><b translate="no">{{ e.rotulo }}</b><span>{{ e.direccion }} · <a href="{{ url(e.municipio.ruta) }}">{{ e.municipio.nombre }}</a></span></span>
+          <span class="b-prov">{{ e.municipio.provincia.nombre }}</span>
+        </li>
+        {% endfor %}
+      </ol>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# ---------- 6. Provincias, por comunidad ---------- #}
+<section class="provincias" id="provincias" aria-labelledby="prov-t">
+  <figure class="prov-foto foto">
+    <img src="{{ url('/estatico/fotos/gasolinera-de-campsa-portillo-valladolid.jpg') }}" alt="Gasolinera de CAMPSA en Portillo, Valladolid, con su poste de precios junto a la carretera" width="1632" height="1224" loading="lazy" decoding="async">
+    <figcaption>Gasolinera de CAMPSA en Portillo (Valladolid), con su poste junto a la carretera.</figcaption>
+  </figure>
+  <div class="prov-lista">
+    <h2 id="prov-t" class="titular-seccion">Tu provincia</h2>
+    <p class="prov-intro">Precio medio de hoy. <span class="punto lleno" aria-hidden="true"></span> marca las cinco más baratas de la Península para tu combustible.</p>
+    <div class="prov-columnas">
+      {% for nombre, filas in grupos %}
+      <div class="prov-grupo">
+        <p class="prov-ccaa">{{ nombre }}</p>
+        <ul>
+          {% for x in filas %}
+          <li><a href="{{ url(x.p.ruta) }}">
+            {% for c in UI %}<span class="punto{% if x.p.id in baratas[c] %} lleno{% endif %}" data-c="{{ c }}" aria-hidden="true"></span>{% endfor %}
+            <span class="prov-nombre">{{ x.p.nombre }}</span>
+            <span class="prov-valor">{% for c in UI %}<span data-c="{{ c }}">{% if x.medias[c] %}{{ x.medias[c]|cifra }}{% else %}<span class="sin-dato">—</span>{% endif %}</span>{% endfor %}</span>
+          </a></li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# ---------- 7. Cómo funciona: la misma tarjeta, cuatro momentos ---------- #}
+{% set e = r.mas_barata %}
+{% set pasos = [
+  ("Primero, la gasolinera pone su precio en el surtidor.", "En el surtidor"),
+  ("Después lo comunica al Ministerio.", "Enviado al Geoportal"),
+  ("Cada tres horas lo recogemos.", "Recogido a las " ~ (actualizado|hora)),
+  ("Y aquí lo ves, ordenado.", "La más barata de " ~ r.n ~ " en " ~ m.nombre),
+] %}
+<section class="proceso" aria-labelledby="proc-t">
+  {% for frase, estado in pasos %}
+  <div class="paso paso-{{ loop.index }}">
+    {% if loop.first %}<h2 id="proc-t" class="paso-titulo">Cómo funciona</h2>{% endif %}
+    <div class="tarjeta" data-ui>
+      <p class="tj-rotulo" translate="no">{{ e.rotulo }}</p>
+      <p class="tj-dir">{{ e.direccion }}, {{ m.nombre }}</p>
+      <p class="tj-precio"><span>Diésel</span>{{ e.precios.diesel|cifra }}</p>
+      <p class="tj-estado{% if loop.last %} final{% endif %}">{{ estado }}</p>
+    </div>
+    <p class="paso-frase">{{ frase }}</p>
+  </div>
+  {% endfor %}
 </section>
 {% endblock %}

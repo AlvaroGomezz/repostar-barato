@@ -1,6 +1,7 @@
 """Genera todas las páginas estáticas de la web."""
 import json
 import shutil
+import statistics
 from datetime import date, timedelta
 from pathlib import Path
 from xml.sax.saxutils import escape as xml_escape
@@ -10,9 +11,9 @@ from markupsafe import Markup
 
 from . import articulos, graficos
 from .config import COMBUSTIBLES, FISCALIDAD_ESPECIAL, POR_CLAVE, RAIZ, Sitio, con_articulo
-from .datos import Datos, Estacion, Municipio, Provincia, mas_baratas, resumen
+from .datos import Datos, Estacion, Municipio, Provincia, distancia_km, mas_baratas, resumen
 from .texto import (capitalizar, centimos, fecha_corta, fecha_larga, fecha_media, hora, numero,
-                    precio)
+                    precio, slug)
 
 PLANTILLAS = RAIZ / "generador" / "plantillas"
 ESTATICO = RAIZ / "generador" / "estatico"
@@ -54,7 +55,7 @@ class Web:
         self.env.globals.update(
             sitio=sitio, url=self.url, abs_url=self.abs_url, C=POR_CLAVE, combustibles=COMBUSTIBLES,
             UI=UI, actualizado=datos.actualizado, anio=self.hoy.year, ld_migas=self.ld_migas,
-            ld_faq=self.ld_faq, deposito=DEPOSITO_L,
+            ld_faq=self.ld_faq, deposito=DEPOSITO_L, n_total=len(datos.estaciones),
         )
         self.nac = {c.clave: resumen(datos.estaciones, c.clave) for c in COMBUSTIBLES}
         self.ayer = historico.get(self.hoy - timedelta(days=1))
@@ -154,6 +155,12 @@ class Web:
         historico_completo[self.hoy] = articulo_hoy_snap
         noticias = [articulos.escribir(s, historico_completo, self.url)
                     for f, s in sorted(historico_completo.items(), reverse=True)]
+        self.env.globals["noticia_hoy"] = noticias[0] if noticias else None
+        try:
+            creditos = json.loads((ESTATICO / "fotos" / "credits.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            creditos = []
+        self.env.globals["creditos"] = creditos
 
         self.inicio(noticias)
         for p in self.d.provincias:
@@ -168,26 +175,54 @@ class Web:
 
     def inicio(self, noticias):
         peninsula = [e for e in self.d.estaciones if e.provincia_id not in FISCALIDAD_ESPECIAL]
-        provincias = []
+        # El poste de la portada: la gasolinera con el diésel más barato de la Península ahora.
+        poste = mas_baratas(peninsula, "diesel", 1)[0]
+        cifras = [{"c": c, "media": self.nac[c].media, "var": self.variacion(c), "n": self.nac[c].n}
+                  for c in UI if self.nac[c].media]
+
+        # Hallazgo: diferencia media entre la más cara y la más barata de una misma ciudad.
+        difs = []
+        for m in self.d.municipios:
+            r = resumen(m.estaciones, "diesel")
+            if r.n >= 5:
+                difs.append(r.maximo - r.minimo)
+        media_dif = statistics.fmean(difs) if difs else 0
+        hallazgo = {"cts": media_dif * 100, "n": len(difs), "euros": media_dif * DEPOSITO_L}
+
+        # Municipio de muestra para las piezas del producto (datos reales).
+        def dispersion(m):
+            r = resumen(m.estaciones, "diesel")
+            return (r.maximo - r.minimo) if r.n else 0
+        candidatos = [m for m in self.d.municipios if m.provincia.id not in FISCALIDAD_ESPECIAL
+                      and 12 <= resumen(m.estaciones, "diesel").n <= 30 and dispersion(m) <= 0.35]
+        muestra = max(candidatos, key=dispersion) if candidatos else max(self.d.municipios, key=lambda m: len(m.estaciones))
+        r_muestra = resumen(muestra.estaciones, "diesel")
+        con_coord = [e for e in muestra.estaciones if e.lat is not None and "diesel" in e.precios]
+        cerca = sorted(((e, distancia_km(muestra.lat, muestra.lon, e.lat, e.lon)) for e in con_coord),
+                       key=lambda x: x[1])[:3] if muestra.lat is not None else []
+        pieza = {
+            "m": muestra, "r": r_muestra, "filas": self.filas(muestra.estaciones)[:4],
+            "escalera": graficos.escalera([e.precios["diesel"] for e in muestra.estaciones if "diesel" in e.precios],
+                                          r_muestra.media),
+            "cerca": cerca,
+        }
+
+        top = {c: mas_baratas(peninsula, c, 8) for c in UI}
+
+        grupos: dict[str, list] = {}
         for p in self.d.provincias:
             medias = {c: resumen(p.estaciones, c).media for c in UI}
-            provincias.append({"p": p, "medias": medias, "n": len(p.estaciones)})
-
-        def serie(c, hoy):
-            return self.serie(lambda s: s["nac"].get(c, {}).get("media"), hoy)
-
-        info = self.info_combustibles(peninsula, serie_fn=serie)
+            grupos.setdefault(p.comunidad or p.nombre, []).append({"p": p, "medias": medias, "n": len(p.estaciones)})
+        baratas = {}
         for c in UI:
-            info[c]["top"] = mas_baratas(peninsula, c, 5)
-            info[c]["nac"] = self.nac[c]
-            info[c]["var"] = self.variacion(c)
-            pen = sorted((x for x in provincias if x["p"].id not in FISCALIDAD_ESPECIAL and x["medias"][c]),
-                         key=lambda x: x["medias"][c])
-            info[c]["prov_barata"] = pen[0] if pen else None
-            info[c]["prov_cara"] = pen[-1] if pen else None
+            filas = [x for g in grupos.values() for x in g if x["p"].id not in FISCALIDAD_ESPECIAL and x["medias"][c]]
+            baratas[c] = {x["p"].id for x in sorted(filas, key=lambda x: x["medias"][c])[:5]}
+        grupos_ordenados = sorted(grupos.items(), key=lambda kv: slug(kv[0]))
+
         self.escribir(
-            "/", "inicio.html", prioridad="1.0", info=info, provincias=provincias,
-            noticias=noticias[:4], n_estaciones=len(self.d.estaciones), n_municipios=len(self.d.municipios),
+            "/", "inicio.html", prioridad="1.0", poste=poste, cifras=cifras, hallazgo=hallazgo, pieza=pieza,
+            top=top, grupos=grupos_ordenados, baratas=baratas, noticias=noticias[:4],
+            n_estaciones=len(self.d.estaciones), n_municipios=len(self.d.municipios),
         )
 
     def provincia(self, p: Provincia):

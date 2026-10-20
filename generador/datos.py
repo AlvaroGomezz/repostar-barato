@@ -27,6 +27,14 @@ PROVINCIAS = {
     "52": "Melilla",
 }
 
+COMUNIDADES = {
+    "01": "Andalucía", "02": "Aragón", "03": "Asturias", "04": "Illes Balears", "05": "Canarias",
+    "06": "Cantabria", "07": "Castilla-La Mancha", "08": "Castilla y León", "09": "Cataluña",
+    "10": "Comunitat Valenciana", "11": "Extremadura", "12": "Galicia", "13": "Madrid",
+    "14": "Murcia", "15": "Navarra", "16": "País Vasco", "17": "La Rioja", "18": "Ceuta",
+    "19": "Melilla",
+}
+
 # Precios fuera de este rango se consideran errores de la fuente.
 PRECIO_MIN, PRECIO_MAX = 0.30, 4.00
 
@@ -79,10 +87,15 @@ class Provincia:
     slug: str
     municipios: list[Municipio] = field(default_factory=list)
     estaciones: list[Estacion] = field(default_factory=list)
+    ccaa: str = ""
 
     @property
     def ruta(self) -> str:
         return f"/gasolineras/{self.slug}/"
+
+    @property
+    def comunidad(self) -> str:
+        return COMUNIDADES.get(self.ccaa, "")
 
 
 @dataclass(eq=False)
@@ -170,7 +183,7 @@ def interpretar(bruto: dict) -> Datos:
         pid = fila["IDProvincia"]
         if pid not in provincias:
             nombre = PROVINCIAS.get(pid) or capitalizar(nombre_bonito(fila["Provincia"]))
-            provincias[pid] = Provincia(pid, nombre, slug(nombre))
+            provincias[pid] = Provincia(pid, nombre, slug(nombre), ccaa=fila.get("IDCCAA", ""))
         provincia = provincias[pid]
 
         mid = fila["IDMunicipio"]

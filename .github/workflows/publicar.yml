@@ -35,8 +35,20 @@ jobs:
       - name: Pruebas
         run: python -m pytest -q
 
+      # Copia de la última descarga buena, por si la API del Ministerio no responde.
+      - uses: actions/cache/restore@v4
+        with:
+          path: respaldo
+          key: respaldo-${{ github.run_id }}
+          restore-keys: respaldo-
+
       - name: Descargar precios y generar la web
         run: python -m generador
+
+      - uses: actions/cache/save@v4
+        with:
+          path: respaldo
+          key: respaldo-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Guardar el histórico diario
         run: |

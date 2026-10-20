@@ -120,7 +120,7 @@ class Datos:
 
 # ---------- descarga ----------
 
-def descargar(intentos: int = 4) -> dict:
+def descargar(intentos: int = 5) -> dict:
     ultimo_error = None
     for i in range(intentos):
         try:
@@ -139,7 +139,8 @@ def descargar(intentos: int = 4) -> dict:
             return datos
         except Exception as e:  # noqa: BLE001 - reintentar cualquier fallo de red
             ultimo_error = e
-            time.sleep(10 * (i + 1))
+            if i + 1 < intentos:
+                time.sleep(15 * (i + 1))
     raise RuntimeError(f"No se pudo descargar la API del Ministerio: {ultimo_error}")
 
 

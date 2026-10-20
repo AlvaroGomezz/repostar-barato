@@ -21,6 +21,10 @@ email = "contacto@gasvia.es"
 # Domicilio (la LSSI también lo pide). Puede ser un apartado de correos. Vacío = no se muestra.
 domicilio = ""
 
+# Estadísticas de visitas sin cookies (GoatCounter): el código de la cuenta, p. ej. "gasvia"
+# (panel en https://gasvia.goatcounter.com). Vacío = sin estadísticas.
+goatcounter = "gasvia"
+
 # Canal de Telegram donde se publica cada mañana el precio del día, p. ej. "@gasvia".
 # Vacío = no se enlaza. Para publicar hacen falta además el bot y los ajustes de docs/GUIA.md.
 telegram = ""

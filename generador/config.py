@@ -59,7 +59,8 @@ class Sitio:
     nif: str
     email: str
     telegram: str = ""
-    domicilio: str = ""  # canal público, p. ej. "@gasvia"
+    domicilio: str = ""
+    goatcounter: str = ""  # canal público, p. ej. "@gasvia"
 
 
 def cargar_sitio() -> Sitio:
@@ -78,4 +79,5 @@ def cargar_sitio() -> Sitio:
         email=d.get("email", "").strip(),
         telegram=d.get("telegram", "").strip(),
         domicilio=d.get("domicilio", "").strip(),
+        goatcounter=d.get("goatcounter", "").strip(),
     )

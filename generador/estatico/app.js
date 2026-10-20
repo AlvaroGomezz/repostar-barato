@@ -13,6 +13,10 @@
   function sinAcentos(t) { return (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
   function esc(t) { var d = document.createElement("div"); d.textContent = t == null ? "" : t; return d.innerHTML; }
   function comb() { return raiz.getAttribute("data-comb") || "diesel"; }
+  // Estadísticas sin cookies: cuántas veces se usa cada herramienta (GoatCounter).
+  function contar(nombre) {
+    try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: "evento/" + nombre, title: nombre, event: true }); } catch (e) {}
+  }
   var alCambiarComb = [];
   var movimientoReducido = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
   function precioHTML(p) {
@@ -614,7 +618,7 @@
       if (!b) return;
       if (b.hasAttribute("data-radio")) { radio = +b.getAttribute("data-radio"); todasVisibles = false; pintar(); }
       else if (b.hasAttribute("data-orden")) { orden = b.getAttribute("data-orden"); pintar(); }
-      else if (b.hasAttribute("data-vista")) { vista = b.getAttribute("data-vista"); pintar(); }
+      else if (b.hasAttribute("data-vista")) { vista = b.getAttribute("data-vista"); if (vista === "mapa") contar("mapa"); pintar(); }
       else if (b.hasAttribute("data-solo24z")) { solo24 = !solo24; pintar(); }
       else if (b.hasAttribute("data-ver-todas")) { todasVisibles = true; pintar(); }
       else if (b.hasAttribute("data-zona-cambiar")) {
@@ -630,7 +634,7 @@
         ponerMunicipio(a.getAttribute("href"), a.getAttribute("data-nombre"), true);
       });
     });
-    $$("[data-zona-ubicacion]").forEach(function (b) { b.addEventListener("click", function () { porUbicacion(false); }); });
+    $$("[data-zona-ubicacion]").forEach(function (b) { b.addEventListener("click", function () { contar("ubicacion"); porUbicacion(false); }); });
     alCambiarComb.push(function () { pintar(); });
     $$("button[data-litros]").forEach(function (b) { b.addEventListener("click", function () { pintar(); }); });
 
@@ -687,6 +691,7 @@
     if (!a || !navigator.share) return;
     ev.preventDefault();
     var texto = decodeURIComponent(a.getAttribute("href").split("text=")[1] || "");
+    contar("compartir");
     navigator.share({ text: texto }).catch(function () {});
   });
   $$("[data-copiar]").forEach(function (b) {
@@ -774,6 +779,7 @@
 
     formRuta.addEventListener("submit", function (ev) {
       ev.preventDefault();
+      contar("ruta");
       var a = [parseFloat(origen.getAttribute("data-lat")), parseFloat(origen.getAttribute("data-lon"))];
       var b = [parseFloat(destino.getAttribute("data-lat")), parseFloat(destino.getAttribute("data-lon"))];
       if (isNaN(a[0])) { avisar("Elige el origen en la lista (escribe y toca un municipio) o usa tu ubicación."); origen.focus(); return; }

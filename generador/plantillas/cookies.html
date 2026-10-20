@@ -6,7 +6,7 @@
 {{ mc.migas([("Cookies", none)]) }}
 <article class="articulo">
 <h1>Política de cookies</h1>
-<p>{{ sitio.nombre }} no usa cookies propias.</p>
+<p>{{ sitio.nombre }} no usa cookies propias.{% if sitio.goatcounter %} Las estadísticas de visitas se hacen con GoatCounter, que funciona sin cookies.{% endif %}</p>
 {% if sitio.adsense %}
 <p>Para financiarse, la web muestra anuncios de Google AdSense. Google y sus socios pueden usar cookies para mostrar anuncios personalizados y medir su rendimiento. Al entrar por primera vez verás un aviso para aceptar, rechazar o configurar estas cookies; puedes cambiar tu elección en cualquier momento desde el enlace de preferencias de privacidad que muestra ese aviso.</p>
 {% else %}

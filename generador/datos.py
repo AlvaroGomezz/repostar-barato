@@ -198,7 +198,7 @@ def interpretar(bruto: dict) -> Datos:
             lat = lon = None
         rotulo = " ".join(fila.get("Rótulo", "").split()) or "Sin marca"
         e = Estacion(
-            id=fila["IDEESS"], rotulo=rotulo, direccion=capitalizar(fila.get("Dirección", "")),
+            id=fila["IDEESS"], rotulo=rotulo, direccion=capitalizar(fila.get("Dirección", "")).strip().rstrip(",").strip(),
             cp=fila.get("C.P.", ""), horario=fila.get("Horario", "").strip(), lat=lat, lon=lon,
             municipio_id=mid, provincia_id=pid, precios=precios, municipio=municipio,
         )

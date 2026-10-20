@@ -11,7 +11,7 @@ from markupsafe import Markup
 
 from . import articulos, graficos
 from .config import COMBUSTIBLES, FISCALIDAD_ESPECIAL, POR_CLAVE, RAIZ, Sitio, con_articulo
-from .datos import Datos, Estacion, Municipio, Provincia, distancia_km, mas_baratas, resumen
+from .datos import Datos, Estacion, Municipio, Provincia, mas_baratas, resumen
 from .texto import (capitalizar, centimos, fecha_corta, fecha_larga, fecha_media, hora, numero,
                     precio, slug)
 
@@ -156,11 +156,6 @@ class Web:
         noticias = [articulos.escribir(s, historico_completo, self.url)
                     for f, s in sorted(historico_completo.items(), reverse=True)]
         self.env.globals["noticia_hoy"] = noticias[0] if noticias else None
-        try:
-            creditos = json.loads((ESTATICO / "fotos" / "credits.json").read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            creditos = []
-        self.env.globals["creditos"] = creditos
 
         self.inicio(noticias)
         for p in self.d.provincias:
@@ -175,12 +170,26 @@ class Web:
 
     def inicio(self, noticias):
         peninsula = [e for e in self.d.estaciones if e.provincia_id not in FISCALIDAD_ESPECIAL]
-        # El poste de la portada: la gasolinera con el diésel más barato de la Península ahora.
-        poste = mas_baratas(peninsula, "diesel", 1)[0]
         cifras = [{"c": c, "media": self.nac[c].media, "var": self.variacion(c), "n": self.nac[c].n}
                   for c in UI if self.nac[c].media]
+        # La más barata de la Península: solo como dato, no como protagonista.
+        mejor = {c: (mas_baratas(peninsula, c, 1) or [None])[0] for c in UI}
 
-        # Hallazgo: diferencia media entre la más cara y la más barata de una misma ciudad.
+        # Grandes ciudades (una por provincia): su gasolinera más barata de hoy para cada combustible.
+        ciudades, vistas = [], set()
+        for m in sorted(self.d.municipios, key=lambda m: -len(m.estaciones)):
+            if m.provincia.id in vistas:
+                continue
+            vistas.add(m.provincia.id)
+            ciudades.append({
+                "m": m, "n": len(m.estaciones),
+                "min": {c: (mas_baratas(m.estaciones, c, 1) or [None])[0] for c in UI},
+                "media": {c: resumen(m.estaciones, c).media for c in UI},
+            })
+            if len(ciudades) == 12:
+                break
+
+        # Lo que se ahorra comparando dentro de una misma ciudad.
         difs = []
         for m in self.d.municipios:
             r = resumen(m.estaciones, "diesel")
@@ -189,48 +198,35 @@ class Web:
         media_dif = statistics.fmean(difs) if difs else 0
         hallazgo = {"cts": media_dif * 100, "n": len(difs), "euros": media_dif * DEPOSITO_L}
 
-        # Municipio de muestra para las piezas del producto (datos reales).
-        def dispersion(m):
-            r = resumen(m.estaciones, "diesel")
-            return (r.maximo - r.minimo) if r.n else 0
-        candidatos = [m for m in self.d.municipios if m.provincia.id not in FISCALIDAD_ESPECIAL
-                      and 12 <= resumen(m.estaciones, "diesel").n <= 30 and dispersion(m) <= 0.35]
-        muestra = max(candidatos, key=dispersion) if candidatos else max(self.d.municipios, key=lambda m: len(m.estaciones))
-        r_muestra = resumen(muestra.estaciones, "diesel")
-        con_coord = [e for e in muestra.estaciones if e.lat is not None and "diesel" in e.precios]
-        cerca = sorted(((e, distancia_km(muestra.lat, muestra.lon, e.lat, e.lon)) for e in con_coord),
-                       key=lambda x: x[1])[:3] if muestra.lat is not None else []
-        pieza = {
-            "m": muestra, "r": r_muestra, "filas": self.filas(muestra.estaciones)[:4],
-            "escalera": graficos.escalera([e.precios["diesel"] for e in muestra.estaciones if "diesel" in e.precios],
-                                          r_muestra.media),
-            "cerca": cerca,
-        }
-
-        top = {c: mas_baratas(peninsula, c, 8) for c in UI}
-        # Accesos directos: las ciudades con más gasolineras (un municipio por provincia).
-        ciudades, vistas = [], set()
-        for m in sorted(self.d.municipios, key=lambda m: -len(m.estaciones)):
-            if m.provincia.id in vistas:
-                continue
-            vistas.add(m.provincia.id)
-            ciudades.append(m)
-            if len(ciudades) == 8:
-                break
+        # Marcas con la media más baja (con al menos 30 gasolineras en la Península).
+        marcas = {}
+        for c in UI:
+            filas = []
+            for marca in self.d.marcas:
+                es = [e for e in marca.estaciones if e.provincia_id not in FISCALIDAD_ESPECIAL]
+                r = resumen(es, c)
+                if r.n >= 30:
+                    filas.append({"marca": marca, "media": r.media, "n": r.n})
+            filas.sort(key=lambda x: x["media"])
+            marcas[c] = {"baratas": filas[:5], "cara": filas[-1] if len(filas) > 5 else None}
+        media_pen = {c: resumen(peninsula, c).media for c in UI}
 
         grupos: dict[str, list] = {}
         for p in self.d.provincias:
             medias = {c: resumen(p.estaciones, c).media for c in UI}
             grupos.setdefault(p.comunidad or p.nombre, []).append({"p": p, "medias": medias, "n": len(p.estaciones)})
-        baratas = {}
+        prov_baratas, baratas = {}, {}
         for c in UI:
             filas = [x for g in grupos.values() for x in g if x["p"].id not in FISCALIDAD_ESPECIAL and x["medias"][c]]
-            baratas[c] = {x["p"].id for x in sorted(filas, key=lambda x: x["medias"][c])[:5]}
+            filas.sort(key=lambda x: x["medias"][c])
+            prov_baratas[c] = filas[:5]
+            baratas[c] = {x["p"].id for x in filas[:5]}
         grupos_ordenados = sorted(grupos.items(), key=lambda kv: slug(kv[0]))
 
         self.escribir(
-            "/", "inicio.html", prioridad="1.0", poste=poste, cifras=cifras, hallazgo=hallazgo, pieza=pieza,
-            top=top, ciudades=ciudades, grupos=grupos_ordenados, baratas=baratas, noticias=noticias[:4],
+            "/", "inicio.html", prioridad="1.0", cifras=cifras, mejor=mejor, ciudades=ciudades,
+            hallazgo=hallazgo, marcas=marcas, media_pen=media_pen, prov_baratas=prov_baratas,
+            grupos=grupos_ordenados, baratas=baratas, noticias=noticias[:4],
             n_estaciones=len(self.d.estaciones), n_municipios=len(self.d.municipios),
         )
 
@@ -359,8 +355,9 @@ class Web:
         buscar = [[m.nombre, m.provincia.nombre, self.url(m.ruta), len(m.estaciones)]
                   for m in self.d.municipios]
         self.fichero("buscar.json", json.dumps(buscar, ensure_ascii=False, separators=(",", ":")))
+        # [lat, lon, rótulo, dirección, municipio, url, diésel, 95, 98, GLP, abierta 24 h]
         estaciones = [[round(e.lat, 5), round(e.lon, 5), e.rotulo, e.direccion, e.municipio.nombre,
-                       self.url(e.municipio.ruta)] + [e.precios.get(c) for c in UI]
+                       self.url(e.municipio.ruta)] + [e.precios.get(c) for c in UI] + [1 if e.abierta_24h else 0]
                       for e in self.d.estaciones if e.lat is not None]
         self.fichero("estaciones.json", json.dumps(estaciones, ensure_ascii=False, separators=(",", ":")))
 

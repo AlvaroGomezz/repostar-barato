@@ -5,6 +5,7 @@
 {% block descripcion %}Precios actualizados el {{ actualizado|fecha_corta }} a las {{ actualizado|hora }} de {% if n > 1 %}las {{ n }} gasolineras{% else %}la gasolinera{% endif %} de {{ m.nombre }} ({{ m.provincia.nombre }}).{% if res.diesel.mas_barata %} Diésel más barato: {{ res.diesel.mas_barata.rotulo }} a {{ res.diesel.minimo|precio }}.{% endif %} Compara gasolina 95, 98 y GLP.{% endblock %}
 {% block contenido %}
 {{ mc.migas([(m.provincia.nombre, m.provincia.ruta), (m.nombre, none)]) }}
+<span hidden data-recordar-lugar data-url="{{ url(m.ruta) }}" data-nombre="{{ m.nombre }}"></span>
 <div class="titulo">
   <h1>Gasolineras en {{ m.nombre }}</h1>
   <p class="subtitulo">{{ n }} gasolinera{{ "s" if n != 1 }} · {{ m.provincia.nombre }} · {{ mc.frescura() }}</p>

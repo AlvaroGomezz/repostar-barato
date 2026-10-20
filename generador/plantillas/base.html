@@ -12,7 +12,7 @@
 <meta property="og:url" content="{{ abs_url(ruta) }}">
 <meta property="og:site_name" content="{{ sitio.nombre }}">
 <meta property="og:locale" content="es_ES">
-<meta name="theme-color" content="#dedad3">
+<meta name="theme-color" content="#ffd43b">
 {% if sitio.search_console %}<meta name="google-site-verification" content="{{ sitio.search_console }}">{% endif %}
 <script>
 /* Combustible y depósito elegidos: de la URL (?c=g95) o de la última visita. Antes de pintar, sin parpadeo. */
@@ -89,10 +89,6 @@
       <a href="{{ url('/privacidad/') }}">Privacidad</a>
       <a href="{{ url('/cookies/') }}">Cookies</a>
     </nav>
-    <figure class="tesela t-foto">
-      <img src="{{ url('/estatico/fotos/gasolinera-gesa-madrid-01.jpg') }}" alt="Marquesina blanca de la gasolinera Gesa, en la calle Alberto Aguilera de Madrid" width="900" height="907" loading="lazy" decoding="async">
-      <figcaption>Gasolinera Gesa, Madrid. Proyecto de Casto Fernández-Shaw, 1927.</figcaption>
-    </figure>
     {% if noticia_hoy %}
     <a class="tesela t-noticia" href="{{ url(noticia_hoy.ruta) }}">
       <span class="t-pequena">Noticia de hoy</span>
@@ -101,16 +97,13 @@
     </a>
     {% endif %}
     <div class="tesela t-marca" translate="no" aria-hidden="true"><span>{{ sitio.nombre }}</span></div>
-    <a class="tesela t-accion" href="{{ url('/') }}#poste">
+    <a class="tesela t-accion" href="{{ url('/') }}#buscar">
       <span class="t-media">Busca tu gasolinera</span>
       <svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true"><path d="M8 40 40 8M16 8h24v24" fill="none" stroke="currentColor" stroke-width="4"/></svg>
     </a>
   </div>
-  {% if creditos %}
-  <p class="creditos">Fotos y vídeo: {% for c in creditos %}<a href="{{ c.page }}" rel="nofollow noopener">«{{ c.title }}»</a>, de {{ c.creator }}, {% if c.licenseUrl %}<a href="{{ c.licenseUrl }}" rel="nofollow noopener">{{ c.license }}</a>{% else %}{{ c.license }}{% endif %}, vía Wikimedia Commons{{ "; " if not loop.last else "." }}{% endfor %}</p>
-  {% endif %}
 </footer>
-<script>window.BASE = {{ sitio.base|tojson }};</script>
+<script>window.BASE = {{ sitio.base|tojson }}; window.HORA = {{ (actualizado|hora)|tojson }};</script>
 <script src="{{ url('/estatico/app.js') }}?v={{ actualizado.strftime('%Y%m%d%H%M') }}" defer></script>
 </body>
 </html>

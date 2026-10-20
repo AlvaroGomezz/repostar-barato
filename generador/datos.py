@@ -111,7 +111,13 @@ def descargar(intentos: int = 4) -> dict:
     ultimo_error = None
     for i in range(intentos):
         try:
-            r = requests.get(API_URL, timeout=180, headers={"Accept": "application/json"})
+            # El servidor del Ministerio corta las conexiones con el identificador por defecto de
+            # Python desde fuera de España; con uno de navegador responde con normalidad.
+            r = requests.get(API_URL, timeout=180, headers={
+                "Accept": "application/json",
+                "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                               "(KHTML, like Gecko) Chrome/130.0 Safari/537.36"),
+            })
             r.raise_for_status()
             datos = r.json()
             if datos.get("ResultadoConsulta") != "OK" or len(datos.get("ListaEESSPrecio", [])) < 5000:

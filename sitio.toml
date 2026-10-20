@@ -25,6 +25,9 @@ domicilio = ""
 # (panel en https://gasvia.goatcounter.com). Vacío = sin estadísticas.
 goatcounter = "gasvia"
 
+# IndexNow: clave para avisar a Bing de las páginas nuevas (es pública: se publica como /<clave>.txt).
+indexnow = "7f8af3e87353bdce50b2dcbbd012455a"
+
 # Canal de Telegram donde se publica cada mañana el precio del día, p. ej. "@gasvia".
 # Vacío = no se enlaza. Para publicar hacen falta además el bot y los ajustes de docs/GUIA.md.
 telegram = ""

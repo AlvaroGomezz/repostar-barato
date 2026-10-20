@@ -85,3 +85,16 @@ jobs:
     steps:
       - id: despliegue
         uses: actions/deploy-pages@v4
+
+  # Con la web ya publicada, avisa a Bing de la portada y de las noticias del día (IndexNow).
+  avisar-buscadores:
+    needs: desplegar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m generador.indexnow

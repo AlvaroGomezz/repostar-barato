@@ -508,6 +508,8 @@ class Web:
             pub = self.sitio.adsense.replace("ca-", "")
             self.fichero("ads.txt", f"google.com, {pub}, DIRECT, f08c47fec0942fa0\n")
         self.fichero(".nojekyll", "")
+        if self.sitio.indexnow:  # Bing comprueba esta clave antes de aceptar los avisos de IndexNow
+            self.fichero(f"{self.sitio.indexnow}.txt", self.sitio.indexnow)
         # La web se puede añadir a la pantalla de inicio del móvil como una app.
         icono = lambda n, t, extra=None: dict({"src": self.url(f"/estatico/marca/{n}"), "sizes": t, "type": "image/png"}, **(extra or {}))  # noqa: E731
         self.fichero("manifest.webmanifest", json.dumps({

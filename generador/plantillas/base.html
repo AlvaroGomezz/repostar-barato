@@ -56,47 +56,34 @@
   <div class="marco barra-fila">
     <a class="marca" href="{{ url('/') }}" translate="no">{{ mcb.simbolo() }}</a>
     <nav class="menu" aria-label="Principal">
-      <a href="{{ url('/') }}?cerca=1#buscar">Cerca de mí</a>
-      <a href="{{ url('/precio-gasolina/') }}"{% if ruta.startswith('/precio-gasolina/') %} aria-current="page"{% endif %}>Precio gasolina</a>
-      <a href="{{ url('/precio-diesel/') }}"{% if ruta.startswith('/precio-diesel/') %} aria-current="page"{% endif %}>Precio diésel</a>
-      <a href="{{ url('/ruta/') }}"{% if ruta.startswith('/ruta/') %} aria-current="page"{% endif %}>Ruta</a>
-      <a href="{{ url('/noticias/') }}"{% if ruta.startswith('/noticias/') %} aria-current="page"{% endif %}>Noticias{% if noticia_hoy %} <span class="menu-hoy">Hoy</span>{% endif %}</a>
+      <div class="menu-item" data-desplegable>
+        <button type="button" class="menu-boton" aria-expanded="false" aria-controls="dd-gasolineras">Gasolineras <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="m5 8 5 5 5-5" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+        <div class="desplegable" id="dd-gasolineras"><p class="dd-grupo">Buscar gasolineras</p>{{ mcb.menu_gasolineras() }}</div>
+      </div>
+      <div class="menu-item" data-desplegable>
+        <button type="button" class="menu-boton" aria-expanded="false" aria-controls="dd-precios">Precios <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="m5 8 5 5 5-5" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+        <div class="desplegable" id="dd-precios"><p class="dd-grupo">Análisis de precios</p>{{ mcb.menu_precios() }}</div>
+      </div>
+      <div class="menu-item" data-desplegable>
+        <button type="button" class="menu-boton" aria-expanded="false" aria-controls="dd-herramientas">Herramientas <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="m5 8 5 5 5-5" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+        <div class="desplegable" id="dd-herramientas"><p class="dd-grupo">Para ahorrar</p>{{ mcb.menu_herramientas() }}</div>
+      </div>
+      <a class="menu-enlace" href="{{ url('/noticias/') }}"{% if ruta.startswith('/noticias/') %} aria-current="page"{% endif %}>Noticias{% if noticia_hoy %} <span class="menu-hoy">Hoy</span>{% endif %}</a>
     </nav>
     <button class="barra-buscar" type="button" data-abrir-busqueda aria-expanded="false" aria-controls="busqueda-barra" aria-label="Buscar municipio">
       <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       <span>Buscar municipio</span>
     </button>
-    <button class="barra-menu" type="button" data-abrir-menu aria-expanded="false" aria-controls="menu-panel">
-      <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-      <span>Menú</span>
+    <a class="boton-negro barra-cta" href="{{ url('/') }}?cerca=1#buscar">{{ mcb.icono('cerca') }}<span>Cerca de mí</span></a>
+    <button class="barra-menu" type="button" data-abrir-menu aria-expanded="false" aria-controls="menu-panel" aria-label="Menú">
+      <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
     </button>
   </div>
   <nav class="menu-panel" id="menu-panel" aria-label="Todas las secciones" hidden>
     <div class="marco menu-grupos">
-      <div class="menu-grupo">
-        <p>Buscar gasolineras</p>
-        <a href="{{ url('/') }}?cerca=1#buscar">Cerca de mí</a>
-        <a href="{{ url('/ruta/') }}">En tu ruta</a>
-        <a href="{{ url('/gasolineras-baratas/') }}">Gasolineras baratas</a>
-        <a href="{{ url('/') }}#provincias">Por provincia</a>
-      </div>
-      <div class="menu-grupo">
-        <p>Precios</p>
-        <a href="{{ url('/precio-gasolina/') }}">Precio de la gasolina</a>
-        <a href="{{ url('/precio-diesel/') }}">Precio del diésel</a>
-        <a href="{{ url('/estadisticas/') }}">Estadísticas</a>
-        <a href="{{ url('/marcas/') }}">Marcas más baratas</a>
-      </div>
-      <div class="menu-grupo">
-        <p>Herramientas</p>
-        <a href="{{ url('/calculadora/') }}">Calculadora de gasolina</a>
-        <a href="{{ url('/ruta/') }}">Planificar dónde repostar</a>
-      </div>
-      <div class="menu-grupo">
-        <p>Noticias</p>
-        {% if noticia_hoy %}<a href="{{ url(noticia_hoy.ruta) }}"><span class="menu-hoy">Hoy</span> {{ noticia_hoy.titular }}</a>{% endif %}
-        <a href="{{ url('/noticias/') }}">Todas las noticias</a>
-      </div>
+      <div class="menu-grupo"><p class="dd-grupo">Buscar gasolineras</p>{{ mcb.menu_gasolineras() }}</div>
+      <div class="menu-grupo"><p class="dd-grupo">Análisis de precios</p>{{ mcb.menu_precios() }}</div>
+      <div class="menu-grupo"><p class="dd-grupo">Para ahorrar</p>{{ mcb.menu_herramientas() }}</div>
     </div>
   </nav>
   <div class="busqueda-barra" id="busqueda-barra" hidden>

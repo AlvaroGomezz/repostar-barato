@@ -328,6 +328,31 @@ class Web:
                 break
         return ciudades
 
+    def ranking_provincias(self) -> dict:
+        """Las provincias de la más barata a la más cara para cada combustible, con su barra y su diferencia."""
+        salida = {}
+        for c in UI:
+            nac = self.nac[c].media
+            filas = []
+            for p in self.d.provincias:
+                r = resumen(p.estaciones, c)
+                if r.media:
+                    filas.append({"p": p, "media": r.media, "dif": (r.media - nac) if nac else None,
+                                  "comunidad": p.comunidad, "especial": p.id in FISCALIDAD_ESPECIAL})
+            if not filas:
+                salida[c] = []
+                continue
+            filas.sort(key=lambda x: x["media"])
+            # La barra se escala con la Península (Canarias, Ceuta y Melilla aplastarían el resto).
+            pen = [x["media"] for x in filas if not x["especial"]] or [x["media"] for x in filas]
+            lo, hi = min(pen), max(pen)
+            for x in filas:
+                q = 0 if hi == lo else (x["media"] - lo) / (hi - lo)
+                x["pct"] = round(12 + 88 * max(0, min(1, q)))
+                x["tono"] = "barata" if q < 0.34 else "media" if q < 0.67 else "cara"
+            salida[c] = filas
+        return salida
+
     def paginas_tema(self):
         peninsula = [e for e in self.d.estaciones if e.provincia_id not in FISCALIDAD_ESPECIAL]
         ciudades = self.grandes_ciudades()
@@ -448,6 +473,7 @@ class Web:
 
         self.escribir(
             "/", "inicio.html", prioridad="1.0", cifras=cifras, mejor=mejor, ciudades=ciudades,
+            fichas={c: self.ficha_combustible(c) for c in UI}, rank_prov=self.ranking_provincias(),
             ciudades_mapa=[[round(x["m"].lat, 4), round(x["m"].lon, 4), x["m"].nombre, f'{x["n"]} gasolineras', "",
                             self.url(x["m"].ruta)] + [x["min"][c].precios[c] if x["min"][c] else None for c in UI] + [0, None]
                            for x in ciudades if x["m"].lat is not None and x["m"].provincia.id not in FISCALIDAD_ESPECIAL],

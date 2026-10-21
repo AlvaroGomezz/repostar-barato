@@ -255,6 +255,32 @@
     });
     $$("a", zona).forEach(function (a) { a.addEventListener("click", function () { zona.hidden = true; b.setAttribute("aria-expanded", "false"); }); });
   });
+  // Menú de la cabecera: desplegables con animación (clic, y también al pasar el ratón).
+  var desplegables = $$("[data-desplegable]");
+  function cerrarDesplegables(salvo) {
+    desplegables.forEach(function (x) {
+      if (x === salvo) return;
+      x.classList.remove("abierto");
+      x.querySelector(".menu-boton").setAttribute("aria-expanded", "false");
+    });
+  }
+  var conRaton = window.matchMedia && matchMedia("(hover: hover) and (pointer: fine)").matches;
+  desplegables.forEach(function (item) {
+    var b = item.querySelector(".menu-boton"), t = null;
+    function abrir(si) { item.classList.toggle("abierto", si); b.setAttribute("aria-expanded", si ? "true" : "false"); }
+    b.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      var si = !item.classList.contains("abierto");
+      cerrarDesplegables(item);
+      abrir(si);
+    });
+    if (conRaton) {
+      item.addEventListener("mouseenter", function () { clearTimeout(t); cerrarDesplegables(item); abrir(true); });
+      item.addEventListener("mouseleave", function () { t = setTimeout(function () { abrir(false); }, 220); });
+    }
+  });
+  document.addEventListener("click", function (ev) { if (!ev.target.closest("[data-desplegable]")) cerrarDesplegables(); });
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") cerrarDesplegables(); });
   document.addEventListener("keydown", function (ev) {
     if (ev.key !== "Escape") return;
     $$("[data-abrir-menu]").forEach(function (b) {
@@ -658,7 +684,9 @@
         html += '<p class="zona-lista-t">' + (orden === "distancia" ? "Las demás, de más cerca a más lejos" : "Las siguientes más baratas") + "</p>" +
           '<ol class="zona-lista">' + vis.map(function (x) {
             var f = x.e;
-            return '<li class="zl" data-en-mapa="' + porPrecio.indexOf(x) + '" tabindex="0"><span class="zl-id"><b translate="no">' + esc(f[2]) + '</b><span class="zl-dir">' +
+            var ip = porPrecio.indexOf(x), nP = Math.min(porPrecio.length, 80), q = ip / Math.max(1, nP - 1);
+            var cat = f[idx] <= e[idx] + 0.0005 ? "top" : q < 0.34 ? "barata" : q < 0.67 ? "media" : "cara";
+            return '<li class="zl cat-' + cat + '" data-pos="' + (ip + 1) + '" data-en-mapa="' + ip + '" tabindex="0"><span class="zl-id"><b translate="no">' + esc(f[2]) + '</b><span class="zl-dir">' +
               (x.d != null ? "a " + km.format(x.d) + " km · " : "") + esc(f[3]) + (gps || f[4] !== estado.nombre ? ", " + esc(f[4]) : "") +
               "</span>" + (x.ahora ? '<span class="zl-ahora">' + ahoraHTML(x.ahora) + "</span>" : "") + '</span><span class="zl-precio"><span class="cifra">' + litro.format(f[idx]) +
               "</span><small>" + cts(f[idx] - e[idx]) + '</small></span><a class="zl-ir" href="' + mapa(f) +
@@ -809,6 +837,20 @@
   // En la página de un municipio: se recuerda para enseñarlo en la portada la próxima vez.
   $$("[data-recordar-lugar]").forEach(function (el) {
     guardar("rb-lugar", JSON.stringify({ tipo: "mun", url: el.getAttribute("data-url"), nombre: el.getAttribute("data-nombre") }));
+  });
+
+  // ---------- provincias: filtrar por nombre ----------
+  $$("[data-filtro-prov]").forEach(function (input) {
+    var vacio = document.querySelector("[data-prov-vacio]");
+    input.addEventListener("input", function () {
+      var q = sinAcentos(input.value.trim()), alguna = false;
+      $$("[data-lista-prov] > li").forEach(function (li) {
+        var ver = !q || sinAcentos(li.getAttribute("data-nombre")).indexOf(q) !== -1;
+        li.hidden = !ver;
+        if (ver && li.parentNode.offsetParent !== null) alguna = true;
+      });
+      if (vacio) vacio.hidden = alguna || !q;
+    });
   });
 
   // ---------- gráficos interactivos: fecha y precio bajo el cursor ----------

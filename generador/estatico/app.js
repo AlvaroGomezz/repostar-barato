@@ -422,6 +422,31 @@
     }
     return mapLibreP;
   }
+  // En el móvil, la tarjeta de una gasolinera sale en un panel abajo, no dentro del mapa.
+  var enMovil = window.matchMedia ? matchMedia("(max-width: 720px)") : { matches: false };
+  var hoja = null;
+  function abrirHoja(html) {
+    if (!hoja) {
+      hoja = document.createElement("div");
+      hoja.className = "hoja";
+      hoja.setAttribute("role", "dialog");
+      hoja.setAttribute("aria-label", "Gasolinera");
+      hoja.innerHTML = '<button type="button" class="hoja-cerrar" aria-label="Cerrar">×</button><div class="hoja-cont"></div>';
+      hoja.querySelector(".hoja-cerrar").addEventListener("click", cerrarHoja);
+      var y0 = null;  // deslizar hacia abajo para cerrar
+      hoja.addEventListener("touchstart", function (ev) { y0 = ev.touches[0].clientY; }, { passive: true });
+      hoja.addEventListener("touchmove", function (ev) {
+        if (y0 != null && ev.touches[0].clientY - y0 > 60) { y0 = null; cerrarHoja(); }
+      }, { passive: true });
+      document.body.appendChild(hoja);
+    }
+    hoja.querySelector(".hoja-cont").innerHTML = html;
+    hoja.classList.remove("abierta");
+    void hoja.offsetWidth;
+    hoja.classList.add("abierta");
+  }
+  function cerrarHoja() { if (hoja) hoja.classList.remove("abierta"); }
+
   // Un mapa que se crea una vez y se vuelve a pintar (cambio de combustible, distancia…) sin recargarse.
   // puntos: [{e, d, ahora}] ordenados por precio; idx: posición del precio en e.
   function crearMapa(div, opciones) {
@@ -497,6 +522,7 @@
       var ml = window.maplibregl;
       marcadores.forEach(function (m) { if (m) m.remove(); });
       marcadores = [];
+      cerrarHoja();
       var visibles = puntos.slice(0, extra.max || 80), n = visibles.length;
       var minimo = n ? visibles[0].e[idx] : 0, limites = new ml.LngLatBounds();
       // Las caras primero, para que las baratas queden por encima.
@@ -507,9 +533,15 @@
         el.className = "pin pin-" + cat + (cerrada ? " pin-cerrada" : "");
         el.setAttribute("aria-label", e[2] + ", " + litro.format(e[idx]) + " €/l");
         el.innerHTML = "<span>" + litro.format(e[idx]) + "€</span>";
-        var pop = new ml.Popup({ offset: 26, closeButton: true, maxWidth: "300px", className: "pop-caja", focusAfterOpen: false })
-          .setHTML(extra.popup ? extra.popup(o.x, idx, cat) : tarjeta(o.x, idx, cat, minimo));
-        marcadores[o.i] = new ml.Marker({ element: el, anchor: "bottom" }).setLngLat([e[1], e[0]]).setPopup(pop).addTo(mapa);
+        var html = extra.popup ? extra.popup(o.x, idx, cat) : tarjeta(o.x, idx, cat, minimo);
+        var marcador = new ml.Marker({ element: el, anchor: "bottom" }).setLngLat([e[1], e[0]]);
+        if (enMovil.matches) {
+          el.addEventListener("click", function (ev) { ev.stopPropagation(); centrar(marcador); abrirHoja(html); });
+        } else {
+          marcador.setPopup(new ml.Popup({ offset: 26, closeButton: true, maxWidth: "300px", className: "pop-caja", focusAfterOpen: false }).setHTML(html));
+        }
+        marcador.html = html;
+        marcadores[o.i] = marcador.addTo(mapa);
         limites.extend([e[1], e[0]]);
       });
       if (yoMarcador) { yoMarcador.remove(); yoMarcador = null; }
@@ -530,12 +562,18 @@
       mapa.resize();
       if (!limites.isEmpty()) mapa.fitBounds(limites, { padding: { top: 50, bottom: 60, left: 40, right: 40 }, maxZoom: 14.5, duration: 0 });
     }
+    // Centra la gasolinera algo por encima del centro, para que el panel inferior no la tape.
+    function centrar(m) {
+      mapa.easeTo({ center: m.getLngLat(), zoom: Math.max(mapa.getZoom(), 13.5), offset: [0, enMovil.matches ? -60 : 0],
+        duration: movimientoReducido ? 0 : 500 });
+    }
     function abrir(i) {
       var m = marcadores[i];
       if (!m || !mapa) return;
-      marcadores.forEach(function (o) { if (o && o !== m && o.getPopup().isOpen()) o.togglePopup(); });
+      if (enMovil.matches) { centrar(m); abrirHoja(m.html); return; }
+      marcadores.forEach(function (o) { if (o && o !== m && o.getPopup() && o.getPopup().isOpen()) o.togglePopup(); });
       mapa.easeTo({ center: m.getLngLat(), zoom: Math.max(mapa.getZoom(), 13.5), duration: movimientoReducido ? 0 : 500 });
-      if (!m.getPopup().isOpen()) m.togglePopup();
+      if (m.getPopup() && !m.getPopup().isOpen()) m.togglePopup();
     }
     return { pintar: pintar, abrir: abrir, redimensionar: function () { if (mapa) mapa.resize(); } };
   }

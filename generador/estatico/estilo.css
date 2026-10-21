@@ -167,7 +167,7 @@ p { text-wrap: pretty; }
 .cabeza-nav { display: flex; gap: 26px; font-size: var(--step-ui); font-weight: 500; }
 .cabeza-nav a { min-height: 44px; display: inline-flex; align-items: center; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: .25em; transition: text-decoration-color var(--t-hover) ease; }
 .cabeza-nav a:hover { text-decoration-color: currentColor; }
-.cabeza-cuerpo { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(28px, 4vw, 72px); align-items: start; padding-top: clamp(8px, 2vw, 32px); }
+.cabeza-cuerpo { display: grid; grid-template-columns: minmax(0, 4.2fr) minmax(0, 7.8fr); gap: clamp(28px, 4vw, 72px); align-items: start; padding-top: clamp(8px, 2vw, 32px); }
 .cabeza-izq { position: sticky; top: 24px; }
 .cabeza-izq { container-type: inline-size; }
 .cabeza h1 { font-size: clamp(2.125rem, 10.5cqi, 4.25rem); line-height: .98; letter-spacing: -0.045em; font-weight: 700; overflow-wrap: break-word; }
@@ -1065,7 +1065,7 @@ button.pop-ir { border: 0; cursor: pointer; font-family: var(--font); font-weigh
 .menu-grupo p.dd-grupo { margin-bottom: 0; }
 
 /* portada: mapa dentro de la tarjeta de tu zona */
-.zona-mapa-tarjeta { height: 300px; margin: -6px -8px 16px; border-radius: 16px; box-shadow: none; }
+.zona-mapa-tarjeta { height: 360px; margin: -6px -8px 16px; border-radius: 16px; box-shadow: none; }
 
 /* tarjetas de resultados */
 .zona-mejor { position: relative; overflow: hidden; border: 1px solid rgba(10, 124, 79, .18); background: linear-gradient(180deg, #f1faf5 0%, var(--papel) 100%); }
@@ -1129,10 +1129,25 @@ button.pop-ir { border: 0; cursor: pointer; font-family: var(--font); font-weigh
   .prov-rank { columns: 1; padding: 8px 10px; }
 }
 @media (max-width: 720px) {
-  .zona-mapa-tarjeta { height: 260px; margin: -4px -4px 14px; }
+  .zona-mapa-tarjeta { height: 300px; margin: -4px -4px 14px; }
   .prov-rank a { grid-template-columns: 24px minmax(0, 1fr) 70px auto; gap: 10px; }
   .prov-cab { flex-direction: column; align-items: stretch; }
 }
+
+/* tarjeta de gasolinera en el móvil: panel inferior */
+.hoja {
+  position: fixed; left: 8px; right: 8px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 50;
+  max-height: 62vh; overflow: auto; overscroll-behavior: contain; background: var(--papel); border-radius: 20px;
+  box-shadow: 0 -4px 30px rgba(20, 20, 20, .25); /* taste-skill-ignore: panel flotante */
+  transform: translateY(calc(100% + 100px)); transition: transform 280ms var(--ease-out); visibility: hidden;
+}
+.hoja.abierta { transform: none; visibility: visible; }
+.hoja::before { content: ""; position: absolute; left: 50%; top: 7px; width: 40px; height: 4px; margin-left: -20px; border-radius: 4px; background: rgba(20, 20, 20, .18); }
+.hoja-cerrar { position: absolute; top: 10px; right: 10px; z-index: 1; width: 34px; height: 34px; border: 0; border-radius: 50%; background: var(--bg); font-size: 22px; line-height: 1; color: var(--muted); cursor: pointer; }
+.hoja .pop { min-width: 0; padding: 20px 18px 18px; border-top: 0; }
+.hoja .pop-precio b { font-size: 32px; }
+.hoja .pop-ir, .hoja .pop-compartir { min-height: 46px; }
+@media (min-width: 721px) { .hoja { display: none; } }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }

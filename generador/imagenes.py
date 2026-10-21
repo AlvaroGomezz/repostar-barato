@@ -9,7 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 from .config import RAIZ
 
 ANCHO, ALTO = 1200, 675
-AMARILLO = (255, 207, 50)
+AMARILLO = (255, 226, 122)
 TINTA = (23, 25, 27)
 SUAVE = (77, 68, 48)
 BLANCO = (255, 255, 255)

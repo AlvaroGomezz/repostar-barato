@@ -683,7 +683,7 @@ class Web:
             "name": self.sitio.nombre, "short_name": self.sitio.nombre, "lang": "es",
             "description": "Las gasolineras más baratas cerca de ti, con los precios oficiales de hoy.",
             "start_url": self.url("/"), "scope": self.url("/"), "display": "standalone",
-            "background_color": "#f3f2ef", "theme_color": "#ffcf32",
+            "background_color": "#f3f2ef", "theme_color": "#ffe27a",
             "icons": [icono("icono-192.png", "192x192"), icono("icono-512.png", "512x512"),
                       icono("icono-maskable-512.png", "512x512", {"purpose": "maskable"})],
         }, ensure_ascii=False, indent=1))

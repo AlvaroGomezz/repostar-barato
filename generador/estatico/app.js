@@ -427,6 +427,12 @@
         div.appendChild(b);
       }
       mapa.on("load", function () {
+        // Nombres de lugares en español (si el mapa los tiene).
+        (mapa.getStyle().layers || []).forEach(function (capa) {
+          if (capa.type === "symbol" && capa.layout && /name/.test(JSON.stringify(capa.layout["text-field"] || ""))) {
+            try { mapa.setLayoutProperty(capa.id, "text-field", ["coalesce", ["get", "name:es"], ["get", "name"]]); } catch (e) {}
+          }
+        });
         mapa.addSource("ruta", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         mapa.addLayer({ id: "ruta", type: "line", source: "ruta", paint: { "line-color": "#17191b", "line-width": 4, "line-opacity": .75 },
           layout: { "line-join": "round", "line-cap": "round" } });
@@ -440,11 +446,30 @@
       var q = i / Math.max(1, n - 1);
       return q < 0.34 ? "barata" : q < 0.67 ? "media" : "cara";
     }
+    var NOMBRE_CORTO = { diesel: "Diésel", g95: "95", g98: "98", glp: "GLP" };
+    var ETIQUETA = { top: "La más barata", barata: "Barata", media: "Precio medio", cara: "Cara" };
+    function tarjeta(x, idx, cat, minimo) {
+      var e = x.e, v = e[idx], dif = v - minimo, ir = "https://www.google.com/maps/dir/?api=1&destination=" + e[0] + "," + e[1];
+      var otros = COMBS.map(function (k, j) {
+        var p = e[6 + j];
+        return '<li' + (6 + j === idx ? ' class="actual"' : "") + "><span>" + NOMBRE_CORTO[k] + "</span><b>" + (p != null ? litro.format(p) : "—") + "</b></li>";
+      }).join("");
+      var texto = e[2] + ", " + e[3] + (e[4] ? " (" + e[4] + ")" : "") + ": " + litro.format(v) + " €/l. Cómo llegar: " + ir;
+      return '<div class="pop pop-' + cat + '">' +
+        '<p class="pop-etq">' + ETIQUETA[cat] + (cat !== "top" && dif > 0.0005 ? " · +" + km.format(dif * 100) + " cts" : "") + "</p>" +
+        '<p class="pop-rot" translate="no">' + esc(e[2]) + "</p>" +
+        '<p class="pop-dir">' + esc(e[3]) + (e[4] ? ", " + esc(e[4]) : "") + "</p>" +
+        '<p class="pop-precio"><b>' + litro.format(v) + "</b> €/l</p>" +
+        '<p class="pop-meta">' + (x.d != null ? "<span>a " + km.format(x.d) + " km</span>" : "") + (x.ahora ? ahoraHTML(x.ahora) : "") + "</p>" +
+        '<ul class="pop-otros">' + otros + "</ul>" +
+        '<div class="pop-acciones"><a class="boton pop-ir" href="' + ir + '" target="_blank" rel="nofollow noopener">Cómo llegar</a>' +
+        '<a class="pop-compartir" data-compartir href="https://wa.me/?text=' + encodeURIComponent(texto) + '" target="_blank" rel="nofollow noopener">Compartir</a></div></div>';
+    }
     function pintar(puntos, idx, extra) {
       if (!listo) { pendiente = [puntos, idx, extra]; return; }
       extra = extra || {};
       var ml = window.maplibregl;
-      marcadores.forEach(function (m) { m.remove(); });
+      marcadores.forEach(function (m) { if (m) m.remove(); });
       marcadores = [];
       var visibles = puntos.slice(0, extra.max || 80), n = visibles.length;
       var minimo = n ? visibles[0].e[idx] : 0, limites = new ml.LngLatBounds();
@@ -456,12 +481,9 @@
         el.className = "pin pin-" + cat + (cerrada ? " pin-cerrada" : "");
         el.setAttribute("aria-label", e[2] + ", " + litro.format(e[idx]) + " €/l");
         el.innerHTML = "<span>" + litro.format(e[idx]) + "€</span>";
-        var pop = new ml.Popup({ offset: 22, closeButton: true, maxWidth: "260px" }).setHTML(
-          '<b translate="no">' + esc(e[2]) + "</b><br>" + esc(e[3]) + ", " + esc(e[4]) +
-          '<br><b class="pop-precio">' + litro.format(e[idx]) + " €/l</b>" + (o.x.d != null ? " · a " + km.format(o.x.d) + " km" : "") +
-          (o.x.ahora ? "<br>" + esc(o.x.ahora.texto) : "") +
-          '<br><a href="https://www.google.com/maps/dir/?api=1&destination=' + e[0] + "," + e[1] + '" target="_blank" rel="nofollow noopener">Cómo llegar</a>');
-        marcadores.push(new ml.Marker({ element: el, anchor: "bottom" }).setLngLat([e[1], e[0]]).setPopup(pop).addTo(mapa));
+        var pop = new ml.Popup({ offset: 26, closeButton: true, maxWidth: "300px", className: "pop-caja", focusAfterOpen: false })
+          .setHTML(extra.popup ? extra.popup(o.x, idx, cat) : tarjeta(o.x, idx, cat, minimo));
+        marcadores[o.i] = new ml.Marker({ element: el, anchor: "bottom" }).setLngLat([e[1], e[0]]).setPopup(pop).addTo(mapa);
         limites.extend([e[1], e[0]]);
       });
       if (yoMarcador) { yoMarcador.remove(); yoMarcador = null; }
@@ -475,13 +497,21 @@
       mapa.getSource("ruta").setData(linea.length ? { type: "Feature", geometry: { type: "LineString", coordinates: linea } } :
         { type: "FeatureCollection", features: [] });
       linea.forEach(function (p) { limites.extend(p); });
-      leyenda.innerHTML = "<b>" + n + (n === 1 ? " gasolinera" : " gasolineras") + "</b>" +
+      var unidad = extra.unidad || ["gasolinera", "gasolineras"];
+      leyenda.innerHTML = "<b>" + n + " " + (n === 1 ? unidad[0] : unidad[1]) + "</b>" +
         '<span><i class="l-top"></i>Más barata</span><span><i class="l-barata"></i>Barata</span>' +
         '<span><i class="l-media"></i>Media</span><span><i class="l-cara"></i>Cara</span>';
       mapa.resize();
       if (!limites.isEmpty()) mapa.fitBounds(limites, { padding: { top: 50, bottom: 60, left: 40, right: 40 }, maxZoom: 14.5, duration: 0 });
     }
-    return { pintar: pintar, redimensionar: function () { if (mapa) mapa.resize(); } };
+    function abrir(i) {
+      var m = marcadores[i];
+      if (!m || !mapa) return;
+      marcadores.forEach(function (o) { if (o && o !== m && o.getPopup().isOpen()) o.togglePopup(); });
+      mapa.easeTo({ center: m.getLngLat(), zoom: Math.max(mapa.getZoom(), 13.5), duration: movimientoReducido ? 0 : 500 });
+      if (!m.getPopup().isOpen()) m.togglePopup();
+    }
+    return { pintar: pintar, abrir: abrir, redimensionar: function () { if (mapa) mapa.resize(); } };
   }
 
   // En la página de un municipio: el mapa de sus gasolineras, al llegar a él.
@@ -511,7 +541,31 @@
     var RADIOS = [3, 5, 10, 25];
     var VISIBLES = 8;
     var estado = null, radio = 5, orden = "precio", solo24 = false, todasVisibles = false;
-    var divMapa = null, controlMapa = null;
+    var divMapa = document.querySelector("[data-app-mapa]"), controlMapa = null;
+    var ciudadesMapa = [];
+    try { ciudadesMapa = JSON.parse(divMapa.getAttribute("data-ciudades") || "[]"); } catch (e) {}
+    function mapaZona() {
+      if (!controlMapa && divMapa) controlMapa = crearMapa(divMapa, { onUbicacion: function () { contar("ubicacion"); porUbicacion(false); } });
+      return controlMapa;
+    }
+    // Sin zona elegida: cada gran ciudad con su gasolinera más barata de hoy.
+    function pintarCiudades() {
+      var mapaC = mapaZona();
+      if (!mapaC) return;
+      var c = comb(), idx = 6 + COMBS.indexOf(c);
+      var puntos = ciudadesMapa.filter(function (e) { return e[idx] != null; }).map(function (e) { return { e: e }; })
+        .sort(function (a, b) { return a.e[idx] - b.e[idx]; });
+      mapaC.pintar(puntos, idx, { unidad: ["ciudad", "ciudades"], popup: function (x) {
+        var e = x.e;
+        return '<div class="pop"><p class="pop-etq">La más barata hoy</p><p class="pop-rot">' + esc(e[2]) + '</p><p class="pop-dir">De sus ' + esc(e[3]) +
+          '</p><p class="pop-precio"><b>' + litro.format(e[idx]) + '</b> €/l</p><div class="pop-acciones"><button type="button" class="boton pop-ir" data-pop-ciudad data-url="' +
+          e[5] + '" data-nombre="' + esc(e[2]) + '">Ver las gasolineras de ' + esc(e[2]) + "</button></div></div>";
+      } });
+    }
+    document.addEventListener("click", function (ev) {
+      var b = ev.target.closest && ev.target.closest("[data-pop-ciudad]");
+      if (b) ponerMunicipio(b.getAttribute("data-url"), b.getAttribute("data-nombre"), true);
+    });
     var estacionesP = null;
     function cargar() {
       if (!estacionesP) estacionesP = fetch(BASE + "/estaciones.json").then(function (r) {
@@ -582,7 +636,7 @@
         '<p class="zm-etq">' + (con.length > 1 ? (c === "g95" || c === "g98" ? "La más barata" : "El más barato") : "Precio") +
         (mejor.d != null ? " · a " + km.format(mejor.d) + " km" : "") + "</p>" +
         '<p class="zm-precio"><span class="cifra" data-cifra data-v="' + e[idx] + '">' + litro.format(e[idx]) + '</span><span class="unidad"> €/l</span></p>' +
-        '<p class="zm-sitio"><b translate="no">' + esc(e[2]) + "</b> " + lugar + "</p>" +
+        '<p class="zm-sitio"><b translate="no">' + esc(e[2]) + "</b> " + lugar + ' <button type="button" class="zm-ver" data-en-mapa="0">Ver en el mapa</button></p>' +
         (mejor.ahora ? '<p class="zm-ahora">' + ahoraHTML(mejor.ahora) + "</p>" : "") +
         (function () {
           if (!mejor.ahora || mejor.ahora.abierta) return "";
@@ -604,7 +658,7 @@
         html += '<p class="zona-lista-t">' + (orden === "distancia" ? "Las demás, de más cerca a más lejos" : "Las siguientes más baratas") + "</p>" +
           '<ol class="zona-lista">' + vis.map(function (x) {
             var f = x.e;
-            return '<li class="zl"><span class="zl-id"><b translate="no">' + esc(f[2]) + '</b><span class="zl-dir">' +
+            return '<li class="zl" data-en-mapa="' + porPrecio.indexOf(x) + '" tabindex="0"><span class="zl-id"><b translate="no">' + esc(f[2]) + '</b><span class="zl-dir">' +
               (x.d != null ? "a " + km.format(x.d) + " km · " : "") + esc(f[3]) + (gps || f[4] !== estado.nombre ? ", " + esc(f[4]) : "") +
               "</span>" + (x.ahora ? '<span class="zl-ahora">' + ahoraHTML(x.ahora) + "</span>" : "") + '</span><span class="zl-precio"><span class="cifra">' + litro.format(f[idx]) +
               "</span><small>" + cts(f[idx] - e[idx]) + '</small></span><a class="zl-ir" href="' + mapa(f) +
@@ -618,17 +672,9 @@
       salida.innerHTML = html;
       $$("[data-cifra]", salida).forEach(function (el) { cifraQueRueda(el, parseFloat(el.getAttribute("data-v"))); });
       var hueco = salida.querySelector("[data-hueco-mapa]");
-      if (hueco) {
-        if (!divMapa) {
-          divMapa = document.createElement("div");
-          divMapa.className = "zona-mapa";
-          divMapa.setAttribute("role", "region");
-          divMapa.setAttribute("aria-label", "Mapa de las gasolineras");
-          controlMapa = crearMapa(divMapa, { onUbicacion: function () { contar("ubicacion"); porUbicacion(false); } });
-        }
-        hueco.replaceWith(divMapa);
-        controlMapa.pintar(porPrecio, idx, { yo: gps && estado.lat != null ? [estado.lat, estado.lon] : null });
-      }
+      if (hueco) hueco.remove();
+      if (mapaZona()) controlMapa.pintar(porPrecio, idx, { yo: gps && estado.lat != null ? [estado.lat, estado.lon] : null });
+      estado.porPrecio = porPrecio;
     }
     // La cifra grande: la parte entera fija y los decimales rodando desde cero.
     function cifraQueRueda(el, valor) {
@@ -662,7 +708,7 @@
       inicial.hidden = true;
       salida.hidden = false;
       pintar();
-      if (desplazar && innerWidth < 960) zona.scrollIntoView({ behavior: movimientoReducido ? "auto" : "smooth", block: "start" });
+      if (desplazar && innerWidth < 960) (divMapa || zona).scrollIntoView({ behavior: movimientoReducido ? "auto" : "smooth", block: "start" });
     }
     function ponerGps(lat, lon, aprox, desplazar) {
       avisar("Buscando gasolineras a tu alrededor…");
@@ -700,7 +746,19 @@
     }
     window.__ponerMunicipio = function (url, nombre) { ponerMunicipio(url, nombre, true); };
 
+    function irAlMapa(i) {
+      if (!controlMapa) return;
+      controlMapa.abrir(i);
+      var r = divMapa.getBoundingClientRect();
+      if (r.top < 0 || r.bottom > innerHeight) divMapa.scrollIntoView({ behavior: movimientoReducido ? "auto" : "smooth", block: "center" });
+    }
+    salida.addEventListener("keydown", function (ev) {
+      var fila = ev.target.closest && ev.target.closest("li[data-en-mapa]");
+      if (fila && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); irAlMapa(+fila.getAttribute("data-en-mapa")); }
+    });
     salida.addEventListener("click", function (ev) {
+      var fila = ev.target.closest("[data-en-mapa]");
+      if (fila && !ev.target.closest("a")) { irAlMapa(+fila.getAttribute("data-en-mapa")); return; }
       var b = ev.target.closest("button");
       if (!b) return;
       if (b.hasAttribute("data-radio")) { radio = +b.getAttribute("data-radio"); todasVisibles = false; pintar(); }
@@ -709,6 +767,7 @@
       else if (b.hasAttribute("data-ver-todas")) { todasVisibles = true; pintar(); }
       else if (b.hasAttribute("data-zona-cambiar")) {
         estado = null; olvidarLugar();
+        pintarCiudades();
         salida.hidden = true; salida.innerHTML = ""; inicial.hidden = false;
         if (input) { input.value = ""; input.focus(); }
       }
@@ -721,8 +780,13 @@
       });
     });
     $$("[data-zona-ubicacion]").forEach(function (b) { b.addEventListener("click", function () { contar("ubicacion"); porUbicacion(false); }); });
-    alCambiarComb.push(function () { pintar(); });
+    alCambiarComb.push(function () { if (estado) pintar(); else pintarCiudades(); });
     $$("button[data-litros]").forEach(function (b) { b.addEventListener("click", function () { pintar(); }); });
+    $$("[data-litros-select]").forEach(function (sel) {
+      sel.value = raiz.getAttribute("data-litros") || "50";
+      sel.addEventListener("change", function () { aplicarLitros(+sel.value, true); pintar(); });
+    });
+    pintarCiudades();
 
     // Al entrar: la última zona consultada o, si ya diste permiso, tu ubicación.
     // Desde el acceso «Cerca de mí» de otra página se pide la ubicación directamente.

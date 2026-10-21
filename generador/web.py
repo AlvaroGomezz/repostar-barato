@@ -409,7 +409,7 @@ class Web:
                 "min": {c: (mas_baratas(m.estaciones, c, 1) or [None])[0] for c in UI},
                 "media": {c: resumen(m.estaciones, c).media for c in UI},
             })
-            if len(ciudades) == 12:
+            if len(ciudades) == 16:
                 break
 
         # Lo que se ahorra comparando dentro de una misma ciudad.
@@ -448,6 +448,9 @@ class Web:
 
         self.escribir(
             "/", "inicio.html", prioridad="1.0", cifras=cifras, mejor=mejor, ciudades=ciudades,
+            ciudades_mapa=[[round(x["m"].lat, 4), round(x["m"].lon, 4), x["m"].nombre, f'{x["n"]} gasolineras', "",
+                            self.url(x["m"].ruta)] + [x["min"][c].precios[c] if x["min"][c] else None for c in UI] + [0, None]
+                           for x in ciudades if x["m"].lat is not None and x["m"].provincia.id not in FISCALIDAD_ESPECIAL],
             hallazgo=hallazgo, marcas=marcas, media_pen=media_pen, prov_baratas=prov_baratas,
             grupos=grupos_ordenados, baratas=baratas, noticias=noticias[:6],
             n_estaciones=len(self.d.estaciones), n_municipios=len(self.d.municipios),

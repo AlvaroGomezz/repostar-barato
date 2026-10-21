@@ -12,10 +12,10 @@
 {# ---------- 1. Tu zona: buscar o ubicarte, y la lista de las más baratas ---------- #}
 <section class="cabeza" id="buscar" aria-labelledby="cabeza-t">
   <div class="cabeza-marco">
-    <div class="cabeza-cuerpo">
-      <div class="cabeza-izq">
-        <h1 id="cabeza-t" class="lineas"><span class="linea"><span data-linea style="--i:0">Gasolineras baratas</span></span> <span class="linea"><span data-linea style="--i:1">cerca de ti</span></span></h1>
-        <p class="cabeza-frase">Precios oficiales de hoy, {{ actualizado|hora }}. Te enseñamos las más baratas de tu zona y cómo llegar.</p>
+    <div class="app">
+      <div class="app-busca">
+        <h1 id="cabeza-t">Gasolineras baratas cerca de ti</h1>
+        <p class="cabeza-frase">Precios oficiales de hoy, {{ actualizado|hora }}. Busca tu zona y te enseñamos las más baratas y cómo llegar.</p>
         <form class="cabeza-buscar buscador" role="search" onsubmit="return false">
           <label class="oculto" for="q">Busca tu pueblo o ciudad</label>
           <svg class="buscador-icono" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -26,44 +26,89 @@
           <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="M10 18s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10Z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="10" cy="8" r="2.2" fill="currentColor"/></svg>
           Usar mi ubicación
         </button>
-        <div class="cabeza-comb">
-          <p id="comb-t">¿Qué echas?</p>
+        <div class="app-filtros">
           {{ mc.selector("Combustible") }}
+          <label class="litros-sel"><span>Depósito</span>
+            <select data-litros-select aria-label="Litros del depósito">{% for l in [30, 40, 50, 60, 70] %}<option value="{{ l }}"{% if l == deposito %} selected{% endif %}>{{ l }} l</option>{% endfor %}</select>
+          </label>
         </div>
-        <div class="cabeza-litros">
-          <p>¿Cuántos litros sueles echar?</p>
-          {{ mc.litros() }}
-        </div>
-        <p class="cabeza-nota">La web recuerda tu zona, tu combustible y tus litros: la próxima vez verás tus gasolineras nada más entrar.</p>
       </div>
 
-      <div class="cabeza-der">
-        <div class="zona" data-ui data-zona id="zona">
-          {# Sin zona elegida: la más barata de hoy en las grandes ciudades. Cada una se abre aquí mismo. #}
-          <div data-zona-inicial>
-            <div class="zona-cab">
-              <div>
-                <p class="zona-titulo">Hoy en las grandes ciudades</p>
-                <p class="zona-sub">La gasolinera más barata de cada una. Toca la tuya para ver todas.</p>
-              </div>
+      <div class="app-mapa">
+        <div class="zona-mapa mapa-app" data-app-mapa data-ciudades='{{ ciudades_mapa|tojson }}' role="region" aria-label="Mapa de gasolineras"></div>
+      </div>
+
+      <div class="app-lista zona" data-ui data-zona id="zona">
+        {# Sin zona elegida: la más barata de hoy en las grandes ciudades. Cada una se abre aquí mismo. #}
+        <div data-zona-inicial>
+          <div class="zona-cab">
+            <div>
+              <p class="zona-titulo">Hoy en las grandes ciudades</p>
+              <p class="zona-sub">La gasolinera más barata de cada una. Toca tu ciudad o usa tu ubicación.</p>
             </div>
-            <ol class="zona-lista ciudades">
-              {% for x in ciudades %}
-              <li><a class="zc" href="{{ url(x.m.ruta) }}" data-zona-ciudad data-nombre="{{ x.m.nombre }}">
-                <span class="zl-id"><b>{{ x.m.nombre }}</b>{% for c in UI %}<span data-c="{{ c }}">{% if x.min[c] %}<span translate="no">{{ x.min[c].rotulo }}</span> · de {{ x.n }} gasolineras{% else %}Sin {{ C[c].nombre_largo }}{% endif %}</span>{% endfor %}</span>
-                <span class="zl-precio">{% for c in UI %}<span data-c="{{ c }}">{% if x.min[c] %}<span class="cifra">{{ "%.3f"|format(x.min[c].precios[c])|replace(".", ",") }}</span><small>media {{ "%.3f"|format(x.media[c])|replace(".", ",") }}</small>{% else %}<span class="sin-dato">—</span>{% endif %}</span>{% endfor %}</span>
-                <span class="zc-flecha" aria-hidden="true"><svg viewBox="0 0 20 20" width="18" height="18"><path d="m7 4 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>
-              </a></li>
-              {% endfor %}
-            </ol>
-            <p class="zona-pie"><span>¿No está la tuya? Búscala arriba o usa tu ubicación.</span><span>€ por litro · {{ actualizado|hora }}</span></p>
           </div>
-          <div data-zona-resultado hidden aria-live="polite"></div>
-          <p class="zona-aviso" data-zona-aviso hidden aria-live="polite"></p>
+          <ol class="zona-lista ciudades">
+            {% for x in ciudades %}
+            <li><a class="zc" href="{{ url(x.m.ruta) }}" data-zona-ciudad data-nombre="{{ x.m.nombre }}">
+              <span class="zl-id"><b>{{ x.m.nombre }}</b>{% for c in UI %}<span data-c="{{ c }}">{% if x.min[c] %}<span translate="no">{{ x.min[c].rotulo }}</span> · de {{ x.n }} gasolineras{% else %}Sin {{ C[c].nombre_largo }}{% endif %}</span>{% endfor %}</span>
+              <span class="zl-precio">{% for c in UI %}<span data-c="{{ c }}">{% if x.min[c] %}<span class="cifra">{{ "%.3f"|format(x.min[c].precios[c])|replace(".", ",") }}</span><small>media {{ "%.3f"|format(x.media[c])|replace(".", ",") }}</small>{% else %}<span class="sin-dato">—</span>{% endif %}</span>{% endfor %}</span>
+              <span class="zc-flecha" aria-hidden="true"><svg viewBox="0 0 20 20" width="18" height="18"><path d="m7 4 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>
+            </a></li>
+            {% endfor %}
+          </ol>
+          <p class="zona-pie"><span>La web recuerda tu zona, tu combustible y tus litros.</span><span>€ por litro · {{ actualizado|hora }}</span></p>
         </div>
+        <div data-zona-resultado hidden aria-live="polite"></div>
+        <p class="zona-aviso" data-zona-aviso hidden aria-live="polite"></p>
       </div>
     </div>
   </div>
+</section>
+
+{# ---------- Herramientas: accesos directos ---------- #}
+<section class="herramientas-inicio seccion" aria-labelledby="herr-t">
+  <h2 id="herr-t" class="titular-seccion">¿Qué necesitas?</h2>
+  <ul class="herr-rejilla">
+    <li><a class="herr" href="{{ url('/ruta/') }}"><span class="herr-icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28"><circle cx="6" cy="18" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span><b>Gasolineras en tu ruta</b><span>Dónde parar a repostar más barato en un viaje.</span></a></li>
+    <li><a class="herr" href="{{ url('/calculadora/') }}"><span class="herr-icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28"><rect x="5" y="3" width="14" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><b>Calculadora de gasolina</b><span>Cuánto te cuesta un viaje o llenar el depósito.</span></a></li>
+    <li><a class="herr" href="{{ url('/precio-gasolina/') }}"><span class="herr-icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28"><path d="M3 18l5-6 4 3 7-9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 21h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><b>Evolución del precio</b><span>Gasolina y diésel, día a día, en el último año.</span></a></li>
+    <li><a class="herr" href="{{ url('/gasolineras-baratas/') }}"><span class="herr-icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7L12 3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span><b>Las más baratas de España</b><span>Las 20 mejores y la más barata de cada provincia.</span></a></li>
+  </ul>
+</section>
+
+{# ---------- 3. Hoy en España: las medias, como referencia ---------- #}
+<section class="hoy seccion" aria-labelledby="hoy-t">
+  <div class="hoy-cab">
+    <h2 id="hoy-t" class="titular-seccion">Hoy en España</h2>
+    <p class="hoy-sub">Precio medio por litro, {{ actualizado|fecha_corta }} a las {{ actualizado|hora }}. Toca un combustible para elegirlo.</p>
+  </div>
+  <ul class="hoy-medias">
+    {% for x in cifras %}
+    <li><a href="?c={{ x.c }}" data-elegir="{{ x.c }}" class="hoy-media" data-reveal style="--i:{{ loop.index0 }}">
+      <span class="hm-precio"><span class="cifra">{{ "%.3f"|format(x.media)|replace(".", ",") }}</span><span class="unidad"> €/l</span></span>
+      <span class="hm-nombre">{{ C[x.c].nombre }}</span>
+      <span class="hm-var">{% if x.var is none %}En {{ x.n|numero(0) }} gasolineras{% elif x.var > 0.0005 %}<span class="sube">▲ {{ x.var|cts }}</span> desde ayer{% elif x.var < -0.0005 %}<span class="baja">▼ {{ x.var|cts }}</span> desde ayer{% else %}Igual que ayer{% endif %}</span>
+    </a></li>
+    {% endfor %}
+  </ul>
+  <div class="tendencia" data-reveal>
+    {% for c in UI %}{% set t = tendencias[c] %}
+    <div class="tend tend-{{ t.estado }}" data-c="{{ c }}">
+      <div class="tend-texto">
+        <p class="tend-pregunta">¿Repostar hoy o esperar? · {{ C[c].nombre }}</p>
+        <p class="tend-titulo">{{ t.titulo }}</p>
+        <p>{{ t.texto }}</p>
+        {% if t.dia %}<p>{{ t.dia }}</p>{% endif %}
+        {% if t.nota %}<p class="tend-nota">{{ t.nota }}</p>{% endif %}
+      </div>
+      {% if t.linea %}<svg class="tend-linea" viewBox="0 0 120 32" preserveAspectRatio="none" role="img" aria-label="Precio medio de los últimos días"><polyline points="{{ t.linea }}" fill="none" stroke="currentColor" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/></svg>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <p class="hoy-enlaces"><a class="enlace-flecha" href="{{ url('/precio-gasolina/') }}">Evolución de la gasolina</a><a class="enlace-flecha" href="{{ url('/precio-diesel/') }}">Evolución del diésel</a><a class="enlace-flecha" href="{{ url('/estadisticas/') }}">Estadísticas</a></p>
+  {% for c in UI %}{% set e = mejor[c] %}
+  {% if e %}<p class="hoy-dato" data-c="{{ c }}">La más barata de la Península: <b translate="no">{{ e.rotulo }}</b>, en <a href="{{ url(e.municipio.ruta) }}">{{ e.municipio.nombre }}</a> ({{ e.municipio.provincia.nombre }}), a {{ e.precios[c]|precio }} el litro de {{ C[c].nombre_largo }}.</p>{% endif %}
+  {% endfor %}
 </section>
 
 {# ---------- 2. Noticias y herramientas, como la portada de un periódico ---------- #}
@@ -103,41 +148,6 @@
       </a></li>
     </ul>
   </div>
-</section>
-
-{# ---------- 3. Hoy en España: las medias, como referencia ---------- #}
-<section class="hoy seccion" aria-labelledby="hoy-t">
-  <div class="hoy-cab">
-    <h2 id="hoy-t" class="titular-seccion">Hoy en España</h2>
-    <p class="hoy-sub">Precio medio por litro, {{ actualizado|fecha_corta }} a las {{ actualizado|hora }}. Toca un combustible para elegirlo.</p>
-  </div>
-  <ul class="hoy-medias">
-    {% for x in cifras %}
-    <li><a href="?c={{ x.c }}" data-elegir="{{ x.c }}" class="hoy-media" data-reveal style="--i:{{ loop.index0 }}">
-      <span class="hm-precio"><span class="cifra">{{ "%.3f"|format(x.media)|replace(".", ",") }}</span><span class="unidad"> €/l</span></span>
-      <span class="hm-nombre">{{ C[x.c].nombre }}</span>
-      <span class="hm-var">{% if x.var is none %}En {{ x.n|numero(0) }} gasolineras{% elif x.var > 0.0005 %}<span class="sube">▲ {{ x.var|cts }}</span> desde ayer{% elif x.var < -0.0005 %}<span class="baja">▼ {{ x.var|cts }}</span> desde ayer{% else %}Igual que ayer{% endif %}</span>
-    </a></li>
-    {% endfor %}
-  </ul>
-  <div class="tendencia" data-reveal>
-    {% for c in UI %}{% set t = tendencias[c] %}
-    <div class="tend tend-{{ t.estado }}" data-c="{{ c }}">
-      <div class="tend-texto">
-        <p class="tend-pregunta">¿Repostar hoy o esperar? · {{ C[c].nombre }}</p>
-        <p class="tend-titulo">{{ t.titulo }}</p>
-        <p>{{ t.texto }}</p>
-        {% if t.dia %}<p>{{ t.dia }}</p>{% endif %}
-        {% if t.nota %}<p class="tend-nota">{{ t.nota }}</p>{% endif %}
-      </div>
-      {% if t.linea %}<svg class="tend-linea" viewBox="0 0 120 32" preserveAspectRatio="none" role="img" aria-label="Precio medio de los últimos días"><polyline points="{{ t.linea }}" fill="none" stroke="currentColor" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/></svg>{% endif %}
-    </div>
-    {% endfor %}
-  </div>
-  <p class="hoy-enlaces"><a class="enlace-flecha" href="{{ url('/precio-gasolina/') }}">Evolución de la gasolina</a><a class="enlace-flecha" href="{{ url('/precio-diesel/') }}">Evolución del diésel</a><a class="enlace-flecha" href="{{ url('/estadisticas/') }}">Estadísticas</a></p>
-  {% for c in UI %}{% set e = mejor[c] %}
-  {% if e %}<p class="hoy-dato" data-c="{{ c }}">La más barata de la Península: <b translate="no">{{ e.rotulo }}</b>, en <a href="{{ url(e.municipio.ruta) }}">{{ e.municipio.nombre }}</a> ({{ e.municipio.provincia.nombre }}), a {{ e.precios[c]|precio }} el litro de {{ C[c].nombre_largo }}.</p>{% endif %}
-  {% endfor %}
 </section>
 
 {# ---------- 4. Para pagar menos: datos de hoy que ayudan a elegir ---------- #}

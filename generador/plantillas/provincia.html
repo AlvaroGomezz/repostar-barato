@@ -42,6 +42,8 @@
   <p class="vacio" data-sin-resultados hidden>Ningún municipio de {{ p.nombre }} con gasolinera coincide con ese nombre.</p>
 </section>
 
+{{ mc.anuncio() }}
+
 {{ mc.evolucion(info, "Evolución del precio en " ~ p.nombre) }}
 
 {{ mc.faq(faq) }}

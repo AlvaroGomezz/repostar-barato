@@ -1152,3 +1152,8 @@ button.pop-ir { border: 0; cursor: pointer; font-family: var(--font); font-weigh
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* Anuncio fijo de AdSense: si Google no lo llena, no deja un hueco vacío. */
+.anuncio { margin: var(--gutter) auto; text-align: center; }
+.anuncio.seccion { padding-bottom: 0; }
+.anuncio:has(ins[data-ad-status="unfilled"]) { display: none; }

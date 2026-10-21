@@ -106,7 +106,8 @@ def test_articulo_con_y_sin_historico(bruto):
 def test_web_completa(bruto, tmp_path):
     d = interpretar(bruto)
     snap = historico.instantanea(d)
-    sitio = Sitio("Prueba", "lema", "https://ejemplo.es/sub", "/sub", "ca-pub-123", "", "", "", "")
+    sitio = Sitio("Prueba", "lema", "https://ejemplo.es/sub", "/sub", "ca-pub-123", "", "", "", "",
+                  adsense_bloque="999")
     salida = tmp_path / "publico"
     web = Web(d, {}, sitio, salida)
     web.construir(snap)
@@ -115,6 +116,10 @@ def test_web_completa(bruto, tmp_path):
     assert "1,450 €" in madrid and 'href="/sub/gasolineras/madrid/"' in madrid
     assert "FAQPage" in madrid and "BreadcrumbList" in madrid
     assert "adsbygoogle" in madrid
+    # El bloque de anuncios fijo sale en municipio, provincia y portada.
+    for pagina in ("gasolineras/madrid/madrid", "gasolineras/madrid", ""):
+        html = (salida / pagina / "index.html").read_text(encoding="utf-8")
+        assert html.count('data-ad-slot="999"') == 1, pagina
     for ruta in salida.rglob("*.html"):
         html = ruta.read_text(encoding="utf-8")
         assert "None" not in html and "undefined" not in html, ruta

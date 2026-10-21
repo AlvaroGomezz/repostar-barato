@@ -65,7 +65,8 @@ class Sitio:
     telegram: str = ""
     domicilio: str = ""
     goatcounter: str = ""
-    indexnow: str = ""  # canal público, p. ej. "@gasvia"
+    indexnow: str = ""
+    adsense_bloque: str = ""  # bloque de anuncios manual (data-ad-slot)  # canal público, p. ej. "@gasvia"
 
 
 def cargar_sitio() -> Sitio:
@@ -86,4 +87,5 @@ def cargar_sitio() -> Sitio:
         domicilio=d.get("domicilio", "").strip(),
         goatcounter=d.get("goatcounter", "").strip(),
         indexnow=d.get("indexnow", "").strip(),
+        adsense_bloque=str(d.get("adsense_bloque", "")).strip(),
     )

@@ -9,6 +9,9 @@ url = "https://gasvia.es"
 # Google AdSense: el identificador de editor, tipo "ca-pub-1234567890123456".
 # Vacío = no se muestran anuncios.
 adsense = "ca-pub-5950812830362053"
+# Bloque de anuncios de display (el número de data-ad-slot). Sale en la portada, en cada provincia
+# y en cada municipio, además de los anuncios automáticos. Vacío = solo anuncios automáticos.
+adsense_bloque = "5908800703"
 
 # Google Search Console: el código del "meta tag" de verificación (solo el content="...").
 search_console = ""

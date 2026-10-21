@@ -1,5 +1,10 @@
 {% macro simbolo(clase="marca-simbolo", id="") %}{{ logo_amarillo }}<span class="oculto">{{ sitio.nombre }}</span>{% endmacro %}
 
+{# Hueco fijo para un anuncio de AdSense. Si Google no lo llena, se oculta (ver .anuncio en estilo.css). #}
+{% macro anuncio(clase="") %}{% if sitio.adsense and sitio.adsense_bloque %}
+<div class="anuncio {{ clase }}"><ins class="adsbygoogle" style="display:block" data-ad-client="{{ sitio.adsense }}" data-ad-slot="{{ sitio.adsense_bloque }}" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div>
+{% endif %}{% endmacro %}
+
 {% macro migas(items) %}
 <nav class="migas" aria-label="Estás en">
   <a href="{{ url('/') }}">Inicio</a>

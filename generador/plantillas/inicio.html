@@ -127,6 +127,8 @@
   {% endfor %}
 </section>
 
+{{ mc.anuncio("seccion") }}
+
 {# ---------- 2. Noticias y herramientas, como la portada de un periódico ---------- #}
 {% set principal = noticias[0] if noticias else none %}
 <section class="diario seccion" aria-labelledby="diario-t">

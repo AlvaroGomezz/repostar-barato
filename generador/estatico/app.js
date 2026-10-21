@@ -422,12 +422,24 @@
     }
     return mapLibreP;
   }
-  // Llama a fn cuando la página ha terminado de cargar y el elemento está en pantalla.
+  // Llama a fn cuando la página ha terminado de cargar, el elemento está en pantalla y la persona ya
+  // ha hecho algo (tocar, deslizar, mover el ratón, una tecla) o han pasado 3,5 s sin que haga nada.
   function cuandoSeVea(el, fn) {
+    var hecho = false, GESTOS = ["pointerdown", "pointermove", "touchstart", "scroll", "keydown", "wheel"];
+    function una() {
+      if (hecho) return;
+      hecho = true;
+      GESTOS.forEach(function (g) { window.removeEventListener(g, una, { passive: true }); });
+      fn();
+    }
+    function esperarGesto() {
+      GESTOS.forEach(function (g) { window.addEventListener(g, una, { passive: true }); });
+      setTimeout(una, 3500);
+    }
     function mirar() {
-      if (!("IntersectionObserver" in window)) { fn(); return; }
+      if (!("IntersectionObserver" in window)) { esperarGesto(); return; }
       var io = new IntersectionObserver(function (es) {
-        if (es[0].isIntersecting) { io.disconnect(); fn(); }
+        if (es[0].isIntersecting) { io.disconnect(); esperarGesto(); }
       }, { threshold: 0.15 });
       io.observe(el);
     }

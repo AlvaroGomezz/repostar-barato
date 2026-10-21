@@ -112,7 +112,7 @@ def test_web_completa(bruto, tmp_path):
     web = Web(d, {}, sitio, salida)
     web.construir(snap)
     madrid = (salida / "gasolineras/madrid/madrid/index.html").read_text(encoding="utf-8")
-    assert "Gasolineras más baratas en Madrid" in madrid
+    assert "<title>Gasolineras baratas en Madrid hoy · Diésel 1,450 €</title>" in madrid
     assert "1,450 €" in madrid and 'href="/sub/gasolineras/madrid/"' in madrid
     assert "FAQPage" in madrid and "BreadcrumbList" in madrid
     assert "adsbygoogle" in madrid

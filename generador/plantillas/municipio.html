@@ -1,13 +1,14 @@
 {% extends "base.html" %}
 {% import "macros.html" as mc with context %}
 {% set n = m.estaciones|length %}
-{% block titulo %}Gasolinera{% if n > 1 %}s más baratas{% else %} más barata{% endif %} en {{ m.nombre }} hoy{% if res.diesel.minimo %} · Diésel {{ res.diesel.minimo|precio }}{% endif %}{% endblock %}
+{# Como buscan la gente y Google: "gasolineras baratas en <pueblo> (<provincia>)". La provincia sobra si se llama igual. #}
+{% block titulo %}Gasolineras baratas en {{ m.nombre }}{% if m.provincia.nombre != m.nombre %} ({{ m.provincia.nombre }}){% endif %} hoy{% if res.diesel.minimo %} · Diésel {{ res.diesel.minimo|precio }}{% endif %}{% endblock %}
 {% block descripcion %}Precios actualizados el {{ actualizado|fecha_corta }} a las {{ actualizado|hora }} de {% if n > 1 %}las {{ n }} gasolineras{% else %}la gasolinera{% endif %} de {{ m.nombre }} ({{ m.provincia.nombre }}).{% if res.diesel.mas_barata %} Diésel más barato: {{ res.diesel.mas_barata.rotulo }} a {{ res.diesel.minimo|precio }}.{% endif %} Compara gasolina 95, 98 y GLP.{% endblock %}
 {% block contenido %}
 {{ mc.migas([(m.provincia.nombre, m.provincia.ruta), (m.nombre, none)]) }}
 <span hidden data-recordar-lugar data-url="{{ url(m.ruta) }}" data-nombre="{{ m.nombre }}"></span>
 <div class="titulo">
-  <h1>Gasolineras en {{ m.nombre }}</h1>
+  <h1>Gasolineras baratas en {{ m.nombre }}</h1>
   <p class="subtitulo">{{ n }} gasolinera{{ "s" if n != 1 }} · {{ m.provincia.nombre }} · {{ mc.frescura() }}</p>
 </div>
 

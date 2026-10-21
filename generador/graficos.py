@@ -20,14 +20,18 @@ def _paso(rango: float) -> float:
     return 1.0
 
 
-def _datos_cursor(puntos, x, y, fecha_txt) -> str:
-    import json
+def _filas_cursor(puntos, x, y, fecha_txt) -> list:
     filas = []
     for p in puntos:
         f, v = p[0], p[1]
         franja = f"{_fmt(p[2])} – {_fmt(p[3])}" if len(p) > 3 and p[2] is not None and p[3] is not None else ""
         filas.append([round(x(f), 2), round(y(v), 2), fecha_txt(f), _fmt(v), franja])
-    return escape(json.dumps(filas, ensure_ascii=False, separators=(",", ":")))
+    return filas
+
+
+def _datos_cursor(puntos, x, y, fecha_txt) -> str:
+    import json
+    return escape(json.dumps(_filas_cursor(puntos, x, y, fecha_txt), ensure_ascii=False, separators=(",", ":")))
 
 
 def _fecha_larga(f) -> str:
@@ -97,10 +101,18 @@ def escalera(precios: list[float], media: float | None) -> Markup:
     def x(v: float) -> float:
         return 2 + (v - vmin) / (vmax - vmin) * 96
 
-    marcas = []
-    for v in sorted(precios, reverse=True):
-        clase = "marca barata" if v == vmin else "marca"
-        marcas.append(f'<line class="{clase}" x1="{x(v):.2f}" x2="{x(v):.2f}" y1="20" y2="80"/>')
+    # Antes era una línea por gasolinera (862 en Madrid, por cada combustible). Ahora las marcas se juntan
+    # en 3 trazos según cuántas caen en el mismo sitio, para que las zonas con muchas sigan viéndose más oscuras.
+    cuenta: dict[float, int] = {}
+    for v in precios:
+        if v != vmin:
+            k = round(x(v) * 2) / 2
+            cuenta[k] = cuenta.get(k, 0) + 1
+    niveles = {1: [], 2: [], 3: []}
+    for k, n in sorted(cuenta.items()):
+        niveles[1 if n == 1 else 2 if n <= 3 else 3].append(f"M{k:g} 20V80")
+    marcas = [f'<path class="marca m{nivel}" d="{"".join(d)}"/>' for nivel, d in niveles.items() if d]
+    marcas.append(f'<line class="marca barata" x1="{x(vmin):.2f}" x2="{x(vmin):.2f}" y1="20" y2="80"/>')
     svg = ('<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'
            '<line class="carril" x1="2" x2="98" y1="50" y2="50"/>' + "".join(marcas) + "</svg>")
     etiquetas = [
@@ -116,7 +128,7 @@ def escalera(precios: list[float], media: float | None) -> Markup:
                   f'<div class="escalera-plot">{svg}</div>{"".join(etiquetas)}</div>')
 
 
-def evolucion_banda(puntos: list[tuple], etiqueta: str = "") -> Markup:
+def evolucion_banda(puntos: list[tuple], etiqueta: str = "", ref: str = "", almacen: dict | None = None) -> Markup:
     """Media diaria con la franja del 50 % central de gasolineras (percentiles 25 a 75).
     puntos: [(fecha, media, p25 | None, p75 | None)]."""
     puntos = sorted(p for p in puntos if p[1] is not None)
@@ -166,6 +178,12 @@ def evolucion_banda(puntos: list[tuple], etiqueta: str = "") -> Markup:
     etiquetas.append(f'<span class="punto-hoy" style="left:{x(fu):.2f}%;top:{y(vu):.2f}%"></span>')
     resumen = (f"{etiqueta}: de {_fmt(puntos[0][1])} € el {fecha_corta(puntos[0][0])} a {_fmt(vu)} € el "
                f"{fecha_corta(fu)}")
-    datos = _datos_cursor(puntos, x, y, _fecha_larga)
-    return Markup(f'<figure class="evolucion"><div class="evolucion-plot" role="img" aria-label="{escape(resumen)}" data-serie="{datos}">'
+    if ref and almacen is not None:
+        # Los datos del cursor van en un archivo aparte (/datos/graficos.json) que se pide al tocar el
+        # gráfico: en la portada eran 226 KB de HTML para 16 gráficos de los que solo se ve uno.
+        almacen[ref] = _filas_cursor(puntos, x, y, _fecha_larga)
+        atributo = f'data-serie-ref="{escape(ref)}"'
+    else:
+        atributo = f'data-serie="{_datos_cursor(puntos, x, y, _fecha_larga)}"'
+    return Markup(f'<figure class="evolucion"><div class="evolucion-plot" role="img" aria-label="{escape(resumen)}" {atributo}>'
                   + "".join(svg) + "".join(etiquetas) + "</div></figure>")

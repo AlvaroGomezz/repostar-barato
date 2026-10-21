@@ -445,6 +445,9 @@ p { text-wrap: pretty; }
 .escalera-plot svg { width: 100%; height: 100%; }
 .escalera .carril { stroke: currentColor; stroke-opacity: .25; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .escalera .marca { stroke: currentColor; stroke-opacity: .55; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.escalera .marca.m1 { stroke-opacity: .45; }
+.escalera .marca.m2 { stroke-opacity: .7; }
+.escalera .marca.m3 { stroke-opacity: .9; }
 .escalera .marca.barata { stroke: var(--accent); stroke-opacity: 1; stroke-width: 3; }
 .esc-min, .esc-max { position: absolute; bottom: 0; font-size: var(--step-small); font-variant-numeric: tabular-nums; }
 .esc-min { left: 0; color: var(--accent-texto); font-weight: 700; }
@@ -1177,3 +1180,31 @@ button.pop-ir { border: 0; cursor: pointer; font-family: var(--font); font-weigh
 .video-dia-panel h2 { margin-top: 12px; }
 .video-dia-texto { width: 100%; padding: 14px; border: 1px solid var(--borde); border-radius: var(--r-ctrl); background: var(--papel); color: inherit; font: inherit; font-size: var(--step-small); line-height: 1.5; resize: vertical; }
 @media (max-width: 720px) { .video-dia { grid-template-columns: minmax(0, 1fr); } }
+
+/* Mapa fijo de la portada (mapa_estatico.py): el dibujo de España con el precio de cada ciudad encima. */
+.zona-mapa-tarjeta { container-type: size; }
+.mapa-estatico { position: absolute; inset: 0; display: grid; place-items: center; background: var(--surface); }
+.me-lienzo { position: relative; width: min(100cqw, 100cqh * 1.3158); height: min(100cqh, 100cqw * .76); }
+.me-lienzo img { display: block; width: 100%; height: 100%; }
+.me-pin { position: absolute; z-index: 1; transform: translate(-50%, calc(-100% - 7px)); text-decoration: none; color: var(--ink); }
+.me-pin:hover, .me-pin:focus-visible { z-index: 5; }
+.me-pin span[data-c] {
+  position: relative; display: block; padding: 3px 8px; border-radius: 999px; background: var(--papel); color: var(--ink);
+  border: 2px solid #e0a100; font: 700 12px/1.2 var(--font); font-variant-numeric: tabular-nums; white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(20, 20, 20, .18); /* taste-skill-ignore: marcador sobre el mapa */
+}
+.me-pin span[data-c]::after { content: ""; position: absolute; left: 50%; bottom: -7px; width: 9px; height: 9px; background: inherit; border-right: inherit; border-bottom: inherit; transform: translateX(-50%) rotate(45deg); }
+.me-pin span.me-top { background: var(--accent); border-color: var(--accent); color: #fff; }
+.me-pin span.me-barata { border-color: var(--accent); }
+.me-pin span.me-media { border-color: #e08a00; }
+.me-pin span.me-cara { border-color: var(--negative); }
+.me-abrir { position: absolute; top: 10px; left: 10px; z-index: 2; min-height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--papel); color: var(--ink); font: 600 13px/1 var(--font); box-shadow: 0 1px 4px rgba(20,20,20,.18); cursor: pointer; }
+.mapa-estatico.me-cargando .me-abrir::after { content: " · cargando…"; font-weight: 400; color: var(--muted); }
+
+.prov-rank > li[data-fuera] { display: none; }
+.me-lienzo img {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent), linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent), linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
+  mask-composite: intersect;
+}

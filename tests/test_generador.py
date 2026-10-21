@@ -117,6 +117,12 @@ def test_web_completa(bruto, tmp_path):
     assert "FAQPage" in madrid and "BreadcrumbList" in madrid
     assert '"@type": "ItemList"' in madrid and '"@type": "GasStation"' in madrid
     assert (salida / "favicon.ico").exists() and "fonts.googleapis" not in madrid
+    # Párrafo propio del pueblo, una sola cifra por gasolinera y la tabla completa construida al abrirla.
+    assert 'class="bloque resumen-pueblo"' in madrid and "hoy, en resumen" in madrid
+    assert madrid.count("data-precio-estacion") >= 1 and "data-tabla=" in madrid and "<table" not in madrid
+    portada = (salida / "index.html").read_text(encoding="utf-8")
+    assert "data-mapa-estatico" in portada and "data-rank=" in portada and "data-serie=" not in portada
+    assert portada.count('class="prov-rank"') == 1
     assert "adsbygoogle" in madrid
     # El bloque de anuncios fijo sale en municipio, provincia y portada.
     for pagina in ("gasolineras/madrid/madrid", "gasolineras/madrid", ""):

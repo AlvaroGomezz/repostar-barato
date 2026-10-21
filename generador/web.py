@@ -9,7 +9,7 @@ from xml.sax.saxutils import escape as xml_escape
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markupsafe import Markup
 
-from . import articulos, graficos, imagenes, marca, tendencia
+from . import articulos, graficos, imagenes, mapa_estatico, marca, tendencia
 from . import historico as historico_mod
 from .config import COMBUSTIBLES, FISCALIDAD_ESPECIAL, LANZAMIENTO, POR_CLAVE, RAIZ, Sitio, con_articulo
 from .datos import Datos, Estacion, Municipio, Provincia, mas_baratas, resumen
@@ -52,7 +52,9 @@ class Web:
                                trim_blocks=True, lstrip_blocks=True)
         self.env.filters.update(precio=precio, numero=numero, fecha_larga=fecha_larga,
                                 fecha_media=fecha_media, fecha_corta=fecha_corta, hora=hora,
-                                centimos=centimos, capitalizar=capitalizar, cifra=cifra, cts=cts)
+                                centimos=centimos, capitalizar=capitalizar, cifra=cifra, cts=cts,
+                                fila_tabla=lambda e, presentes: [e.rotulo, e.direccion,
+                                                                 [precio(e.precios.get(c.clave)) for c in presentes]])
         self.env.globals.update(
             sitio=sitio, url=self.url, abs_url=self.abs_url, C=POR_CLAVE, combustibles=COMBUSTIBLES,
             UI=UI, actualizado=datos.actualizado, anio=self.hoy.year, ld_migas=self.ld_migas,
@@ -62,6 +64,7 @@ class Web:
         )
         self.nac = {c.clave: resumen(datos.estaciones, c.clave) for c in COMBUSTIBLES}
         self.ayer = historico.get(self.hoy - timedelta(days=1))
+        self.series_graficos: dict[str, list] = {}  # datos del cursor de los gráficos nacionales (datos/graficos.json)
         # ¿Repostar hoy o esperar? Tendencia del precio medio en España de cada combustible.
         nombres = {"diesel": ("diésel", "el"), "g95": ("gasolina 95", "la"), "g98": ("gasolina 98", "la"), "glp": ("GLP", "el")}
         self.tendencias = {
@@ -307,13 +310,15 @@ class Web:
             return None
         return previos[-1]
 
-    def graficos_rango(self, serie: list[tuple], nombre: str) -> list[dict]:
+    def graficos_rango(self, serie: list[tuple], nombre: str, clave: str = "") -> list[dict]:
         salida = []
         for dias, etiqueta in self.RANGOS:
             sub = [p for p in serie if p[0] >= self.hoy - timedelta(days=dias)]
             if len(sub) < 2 or (dias > 30 and (sub[-1][0] - sub[0][0]).days < dias * 0.6):
                 continue
-            salida.append({"dias": dias, "etiqueta": etiqueta, "svg": graficos.evolucion_banda(sub, nombre)})
+            svg = graficos.evolucion_banda(sub, nombre, ref=f"{clave}-{dias}" if clave else "",
+                                           almacen=self.series_graficos)
+            salida.append({"dias": dias, "etiqueta": etiqueta, "svg": svg})
         return salida
 
     def ficha_combustible(self, c: str) -> dict:
@@ -331,7 +336,7 @@ class Web:
             bajo = min(serie, key=lambda p: p[1])
             extremos = {"alto": alto, "bajo": bajo, "dias": (serie[-1][0] - serie[0][0]).days}
         return {"c": c, "nombre": POR_CLAVE[c].nombre, "largo": POR_CLAVE[c].nombre_largo, "r": self.nac[c],
-                "hoy": hoy, "cambios": cambios, "graficos": self.graficos_rango(serie, POR_CLAVE[c].nombre),
+                "hoy": hoy, "cambios": cambios, "graficos": self.graficos_rango(serie, POR_CLAVE[c].nombre, clave=c),
                 "extremos": extremos, "n_dias": len(valores)}
 
     def provincias_tabla(self, c: str) -> list[dict]:
@@ -574,10 +579,19 @@ class Web:
 
         self.escribir(
             "/", "inicio.html", prioridad="1.0", cifras=cifras, mejor=mejor, ciudades=ciudades,
-            fichas={c: self.ficha_combustible(c) for c in UI}, rank_prov=self.ranking_provincias(),
+            fichas={c: self.ficha_combustible(c) for c in UI}, rank_prov=(rank := self.ranking_provincias()),
+            # Los otros combustibles de la clasificación de provincias: el JS reordena la lista con esto.
+            rank_json={c: [[x["p"].id, f'{x["media"]:.3f}'.replace(".", ","),
+                            cts(x["dif"]) if x["dif"] is not None else "",
+                            ("baja" if x["dif"] < -0.0005 else "sube" if x["dif"] > 0.0005 else "") if x["dif"] is not None else "",
+                            x["pct"], x["tono"]] for x in rank[c]] for c in UI},
             ciudades_mapa=[[round(x["m"].lat, 4), round(x["m"].lon, 4), x["m"].nombre, f'{x["n"]} gasolineras', "",
                             self.url(x["m"].ruta)] + [x["min"][c].precios[c] if x["min"][c] else None for c in UI] + [0, None]
                            for x in ciudades if x["m"].lat is not None and x["m"].provincia.id not in FISCALIDAD_ESPECIAL],
+            pines_mapa=mapa_estatico.pines(
+                [{"nombre": x["m"].nombre, "url": self.url(x["m"].ruta), "lat": x["m"].lat, "lon": x["m"].lon,
+                  "precios": {c: x["min"][c].precios[c] for c in UI if x["min"][c]}}
+                 for x in ciudades if x["m"].lat is not None and x["m"].provincia.id not in FISCALIDAD_ESPECIAL], UI),
             hallazgo=hallazgo, marcas=marcas, media_pen=media_pen, prov_baratas=prov_baratas,
             grupos=grupos_ordenados, baratas=baratas, noticias=noticias[:6],
             n_estaciones=len(self.d.estaciones), n_municipios=len(self.d.municipios),
@@ -618,6 +632,77 @@ class Web:
                       municipios=municipios, faq=faq,
                       ld_lista=self.ld_gasolineras(f"Gasolineras más baratas de {p.nombre}", p.estaciones),
                       otras=[x for x in self.d.provincias if x.id != p.id])
+
+    def puesto_en_provincia(self, m: Municipio, c: str = "diesel") -> tuple[int, int] | None:
+        """Puesto del municipio en su provincia por el precio más bajo de c (1 = el más barato)."""
+        cache = self.__dict__.setdefault("_puestos", {})
+        clave = (m.provincia.id, c)
+        if clave not in cache:
+            lista = sorted((min(e.precios[c] for e in x.estaciones if c in e.precios), x.id)
+                           for x in self.d.municipios
+                           if x.provincia.id == m.provincia.id and any(c in e.precios for e in x.estaciones))
+            cache[clave] = {mid: i + 1 for i, (_, mid) in enumerate(lista)}, len(lista)
+        puestos, total = cache[clave]
+        return (puestos[m.id], total) if m.id in puestos else None
+
+    def resumen_municipio(self, m: Municipio, res: dict, res_p: dict, serie_diesel: list) -> list[str]:
+        """Un párrafo propio de cada pueblo, calculado con sus datos de hoy: frente a su provincia,
+        su puesto, si compensa ir al pueblo de al lado, cuánto cambia dentro del pueblo y la semana."""
+        frases = []
+        r, rp = res["diesel"], res_p["diesel"]
+        if r.minimo is not None:
+            base = r.media if r.n > 1 else r.minimo
+            que = "El precio medio del diésel" if r.n > 1 else "El diésel"
+            if rp.media:
+                dif = base - rp.media
+                comp = ("igual que la media" if abs(dif) < 0.0005 else
+                        f"{centimos(dif)} {'por encima' if dif > 0 else 'por debajo'} de la media")
+                frases.append(f"{que} en {m.nombre} hoy es de {precio(base)}, {comp} de la provincia de "
+                              f"{m.provincia.nombre} ({precio(rp.media)}).")
+            puesto = self.puesto_en_provincia(m)
+            if puesto and puesto[1] > 2:
+                pos, total = puesto
+                if pos == 1:
+                    frases.append(f"Es el municipio con el diésel más barato de los {total} de {m.provincia.nombre} con gasolinera.")
+                else:
+                    frases.append(f"Por su gasolinera más barata, ocupa el puesto {pos} de {total} municipios de "
+                                  f"{m.provincia.nombre} con gasolinera (el 1 es el más barato).")
+            # ¿Compensa ir al pueblo de al lado?
+            mejor = None
+            for e, d in m.cercanas:
+                v = e.precios.get("diesel")
+                if v is not None and v < r.minimo - 0.005 and (mejor is None or v < mejor[0].precios["diesel"]):
+                    mejor = (e, d)
+            ahorro = (r.minimo - mejor[0].precios["diesel"]) * DEPOSITO_L if mejor else 0
+            if mejor and ahorro < 1:
+                frases.append(f"A menos de 15 km no hay grandes diferencias: como mucho ahorrarías "
+                              f"{precio(ahorro, 2)} en un depósito de {DEPOSITO_L} litros.")
+            elif mejor:
+                e, d = mejor
+                frases.append(f"Si te pilla de paso, en {e.municipio.nombre} (a {numero(d, 0)} km) hay diésel a "
+                              f"{precio(e.precios['diesel'])} en {e.rotulo}: en un depósito de {DEPOSITO_L} litros "
+                              f"ahorras {precio(ahorro, 2)} frente a la más barata de {m.nombre}.")
+            elif m.cercanas:
+                frases.append(f"Ninguna gasolinera a menos de 15 km tiene el diésel más barato que la mejor de "
+                              f"{m.nombre}, así que no compensa desviarse.")
+            if r.n > 1 and r.maximo - r.minimo >= 0.005:
+                frases.append(f"Dentro de {m.nombre}, entre la gasolinera más barata y la más cara hay "
+                              f"{centimos(r.maximo - r.minimo)}: {precio((r.maximo - r.minimo) * DEPOSITO_L, 2)} "
+                              f"de diferencia al llenar {DEPOSITO_L} litros.")
+        # La semana: con el histórico propio del municipio.
+        semana = [(f, v) for f, v in serie_diesel if f >= self.hoy - timedelta(days=7)]
+        if len(semana) >= 3:
+            cambio = semana[-1][1] - semana[0][1]
+            dias = (semana[-1][0] - semana[0][0]).days
+            if abs(cambio) >= 0.0005:
+                frases.append(f"En los últimos {dias} días, el diésel ha {'subido' if cambio > 0 else 'bajado'} "
+                              f"{centimos(cambio)} en {m.nombre}.")
+            else:
+                frases.append(f"En los últimos {dias} días, el precio del diésel en {m.nombre} no se ha movido.")
+        g = res["g95"]
+        if g.mas_barata:
+            frases.append(f"La gasolina 95 más barata está a {precio(g.minimo)} en {g.mas_barata.rotulo}.")
+        return frases
 
     def municipio(self, m: Municipio):
         def serie(c, hoy):
@@ -674,6 +759,7 @@ class Web:
                          + [e.precios.get(c) for c in UI] + [1 if e.abierta_24h else 0, e.semana]
                          for e in m.estaciones if e.lat is not None],
             vecinos=vecinos, faq=faq, n24=n24,
+            resumen_texto=self.resumen_municipio(m, res, res_p, serie("diesel", res["diesel"].media)),
             ld_lista=self.ld_gasolineras(f"Gasolineras baratas en {m.nombre} ({m.provincia.nombre})", m.estaciones),
             presentes=[c for c in COMBUSTIBLES if any(c.clave in e.precios for e in m.estaciones)],
         )
@@ -773,6 +859,8 @@ class Web:
             f"<priority>{p}</priority></url>" for r, f, p in self.paginas)
         self.fichero("sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>'
                      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + urls + "</urlset>")
+        if self.series_graficos:
+            self.fichero("datos/graficos.json", json.dumps(self.series_graficos, ensure_ascii=False, separators=(",", ":")))
         self.fichero("robots.txt", f"User-agent: *\nAllow: /\n\nSitemap: {self.abs_url('/sitemap.xml')}\n")
         if self.sitio.adsense:
             pub = self.sitio.adsense.replace("ca-", "")

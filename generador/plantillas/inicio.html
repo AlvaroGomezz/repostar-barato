@@ -44,7 +44,19 @@
 
       <div class="cabeza-der">
         <div class="zona" data-ui data-zona id="zona">
-          <div class="zona-mapa zona-mapa-tarjeta" data-app-mapa data-ciudades='{{ ciudades_mapa|tojson }}' role="region" aria-label="Mapa de gasolineras"></div>
+          <div class="zona-mapa zona-mapa-tarjeta" data-app-mapa data-ciudades='{{ ciudades_mapa|tojson }}' role="region" aria-label="Mapa de gasolineras">
+            {# Mapa fijo y ligero; el interactivo (unos 3 MB) se carga al tocarlo en el móvil o tras el primer gesto en el ordenador. #}
+            <div class="mapa-estatico" data-mapa-estatico>
+              <div class="me-lienzo">
+                <img src="{{ url('/estatico/mapa-espana.svg') }}" alt="" width="1000" height="760" decoding="async">
+                {% for p in pines_mapa %}
+                <a class="me-pin" href="{{ p.url }}" style="left:{{ p.x }}%;top:{{ p.y }}%"><span class="oculto">{{ p.nombre }}: </span>{% for c in UI %}{% if p.precios[c] is defined %}<span class="me-{{ p.cat[c] }}" data-c="{{ c }}">{{ "%.3f"|format(p.precios[c])|replace(".", ",") }}€</span>{% endif %}{% endfor %}</a>
+                {% endfor %}
+              </div>
+              <button type="button" class="me-abrir" data-mapa-abrir>Ver el mapa interactivo</button>
+              <div class="mapa-leyenda"><b>{{ pines_mapa|length }} ciudades</b><span><i class="l-top"></i>Más barata</span><span><i class="l-barata"></i>Barata</span><span><i class="l-media"></i>Media</span><span><i class="l-cara"></i>Cara</span></div>
+            </div>
+          </div>
           {# Sin zona elegida: la más barata de hoy en las grandes ciudades. Cada una se abre aquí mismo. #}
           <div data-zona-inicial>
             <div class="zona-cab">
@@ -225,10 +237,11 @@
       <input type="search" placeholder="Busca tu provincia…" autocomplete="off" data-filtro-prov>
     </label>
   </div>
-  {% for c in UI %}
-  <ol class="prov-rank" data-c="{{ c }}" data-lista-prov>
+  {# Una sola lista, con el orden del diésel; al elegir otro combustible el JS la reordena con data-rank. #}
+  {% set c = "diesel" %}
+  <ol class="prov-rank" data-lista-prov data-rank='{{ rank_json|tojson }}'>
     {% for x in rank_prov[c] %}
-    <li data-nombre="{{ x.p.nombre }} {{ x.comunidad }}"><a href="{{ url(x.p.ruta) }}">
+    <li data-id="{{ x.p.id }}" data-nombre="{{ x.p.nombre }} {{ x.comunidad }}"><a href="{{ url(x.p.ruta) }}">
       <span class="pr-pos">{{ loop.index }}</span>
       <span class="pr-nombre"><b>{{ x.p.nombre }}</b><small>{{ x.comunidad if x.comunidad != x.p.nombre else "" }}{% if x.especial %}{{ " · " if x.comunidad != x.p.nombre else "" }}otros impuestos{% endif %}</small></span>
       <span class="pr-barra" aria-hidden="true"><span class="pr-relleno pr-{{ x.tono }}" style="width:{{ x.pct }}%"></span></span>
@@ -236,7 +249,6 @@
     </a></li>
     {% endfor %}
   </ol>
-  {% endfor %}
   <p class="prov-vacio" data-prov-vacio hidden>Ninguna provincia se llama así.</p>
   <p class="nota">Barra: de la más barata a la más cara de la Península. Canarias, Ceuta y Melilla tienen otros impuestos y salen más baratas.</p>
 </section>

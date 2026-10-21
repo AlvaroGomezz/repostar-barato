@@ -156,6 +156,61 @@
   });
 
   // Ordenar una lista por precio o volver al orden alfabético.
+  // Listas con un solo precio por fila: se rellena con el del combustible elegido (data-diesel, data-g95…).
+  var filasPrecio = $$("[data-fila-precio]");
+  function preciosFilas(c) {
+    filasPrecio.forEach(function (el) {
+      var v = el.parentNode.getAttribute("data-" + c), cifra = el.querySelector(".cifra");
+      if (v && cifra) cifra.textContent = litro.format(+v);
+    });
+  }
+  if (filasPrecio.length) { preciosFilas(comb()); alCambiarComb.push(preciosFilas); }
+
+  // Gasolineras de un municipio: un solo precio por fila, con la diferencia frente a la más barata.
+  var dec1 = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  var listasEst = [];
+  $$("[data-precio-estacion]").forEach(function (el) {
+    var ol = el.closest("ol");
+    if (ol && listasEst.indexOf(ol) === -1) listasEst.push(ol);
+  });
+  function preciosEstaciones(c) {
+    listasEst.forEach(function (ol) {
+      var lis = $$(":scope > li", ol), minimo = Infinity;
+      lis.forEach(function (li) { var v = parseFloat(li.getAttribute("data-" + c)); if (v < minimo) minimo = v; });
+      lis.forEach(function (li) {
+        var caja = li.querySelector("[data-precio-estacion]");
+        if (!caja) return;
+        var v = parseFloat(li.getAttribute("data-" + c)), span = document.createElement("span");
+        if (isNaN(v)) {
+          span.innerHTML = '<span class="sin-dato">No vende</span>';
+        } else {
+          var barata = lis.length > 1 && Math.abs(v - minimo) < 0.0005, d = (v - minimo) * 100;
+          if (barata) span.className = "es-barata";
+          span.innerHTML = '<span class="importe"><span class="cifra">' + litro.format(v) + '</span><span class="unidad"> €/l</span></span><small>' +
+            (barata ? "la más barata" : lis.length > 1 ? (Math.abs(d) < 0.05 ? "0 cts" : "+" + dec1.format(d) + " cts") : "") + "</small>";
+        }
+        caja.replaceChildren(span);
+      });
+    });
+  }
+  if (listasEst.length) { if (comb() !== "diesel") preciosEstaciones(comb()); alCambiarComb.push(preciosEstaciones); }
+
+  // Tabla con todos los combustibles: se construye la primera vez que se abre.
+  $$("details[data-tabla]").forEach(function (det) {
+    det.addEventListener("toggle", function () {
+      var hueco = det.querySelector("[data-tabla-hueco]");
+      if (!det.open || !hueco || hueco.firstChild) return;
+      var d;
+      try { d = JSON.parse(det.getAttribute("data-tabla")); } catch (e) { return; }
+      hueco.innerHTML = '<table class="tabla"><thead><tr><th scope="col">Gasolinera</th>' +
+        d.cab.map(function (c) { return '<th scope="col" class="num">' + esc(c) + "</th>"; }).join("") + "</tr></thead><tbody>" +
+        d.filas.map(function (f) {
+          return "<tr><td>" + esc(f[0]) + '<span class="celda-sub">' + esc(f[1]) + "</span></td>" +
+            f[2].map(function (p) { return '<td class="num">' + esc(p) + "</td>"; }).join("") + "</tr>";
+        }).join("") + "</tbody></table>";
+    });
+  });
+
   $$("[data-ordenar-lista]").forEach(function (boton) {
     var lista = document.getElementById(boton.getAttribute("data-ordenar-lista"));
     boton.addEventListener("click", function () {
@@ -476,11 +531,27 @@
     opciones = opciones || {};
     var mapa = null, listo = false, pendiente = null, marcadores = [], yoMarcador = null, leyenda = null;
     div.classList.add("mapa");
-    div.innerHTML = '<p class="mapa-cargando">Cargando el mapa…</p>';
-    // perezoso: el mapa (MapLibre y unos 3 MB de mapa) se descarga cuando la página ya ha cargado y
-    // el mapa está a la vista. Así no frena la primera carga, sobre todo en el móvil.
-    if (opciones.perezoso) cuandoSeVea(div, arrancar); else arrancar();
+    var iniciado = false;
+    // perezoso: mientras tanto se ve el mapa fijo de la página (sin descargar MapLibre ni unos 3 MB de mapa).
+    // En el móvil, el interactivo arranca al tocar el mapa; en el ordenador, tras el primer gesto.
+    // También arranca si hay que pintar algo que no sea el resumen de ciudades (ver pintar).
+    if (opciones.perezoso) {
+      var abrir = div.querySelector("[data-mapa-abrir]");
+      if (abrir) abrir.addEventListener("click", arrancar);
+      if (enMovil.matches) {
+        div.addEventListener("click", function (ev) { if (!(ev.target.closest && ev.target.closest("a"))) arrancar(); });
+      } else {
+        cuandoSeVea(div, arrancar);
+      }
+    } else {
+      arrancar();
+    }
     function arrancar() {
+    if (iniciado) return;
+    iniciado = true;
+    var estatico = div.querySelector("[data-mapa-estatico]");
+    if (estatico) estatico.classList.add("me-cargando");
+    else div.innerHTML = '<p class="mapa-cargando">Cargando el mapa…</p>';
     cargarMapLibre().then(function (ml) {
       div.innerHTML = "";
       mapa = new ml.Map({
@@ -545,7 +616,11 @@
         '<a class="pop-compartir" data-compartir href="https://wa.me/?text=' + encodeURIComponent(texto) + '" target="_blank" rel="nofollow noopener">Compartir</a></div></div>';
     }
     function pintar(puntos, idx, extra) {
-      if (!listo) { pendiente = [puntos, idx, extra]; return; }
+      if (!listo) {
+        pendiente = [puntos, idx, extra];
+        if (!(extra && extra.esperar)) arrancar();
+        return;
+      }
       extra = extra || {};
       var ml = window.maplibregl;
       marcadores.forEach(function (m) { if (m) m.remove(); });
@@ -647,7 +722,7 @@
       var c = comb(), idx = 6 + COMBS.indexOf(c);
       var puntos = ciudadesMapa.filter(function (e) { return e[idx] != null; }).map(function (e) { return { e: e }; })
         .sort(function (a, b) { return a.e[idx] - b.e[idx]; });
-      mapaC.pintar(puntos, idx, { unidad: ["ciudad", "ciudades"], popup: function (x) {
+      mapaC.pintar(puntos, idx, { esperar: true, unidad: ["ciudad", "ciudades"], popup: function (x) {
         var e = x.e;
         return '<div class="pop"><p class="pop-etq">La más barata hoy</p><p class="pop-rot">' + esc(e[2]) + '</p><p class="pop-dir">De sus ' + esc(e[3]) +
           '</p><p class="pop-precio"><b>' + litro.format(e[idx]) + '</b> €/l</p><div class="pop-acciones"><button type="button" class="boton pop-ir" data-pop-ciudad data-url="' +
@@ -906,6 +981,34 @@
   });
 
   // ---------- provincias: filtrar por nombre ----------
+  // Clasificación de provincias de la portada: una lista que se reordena con el combustible elegido.
+  $$("[data-rank]").forEach(function (lista) {
+    var datos;
+    try { datos = JSON.parse(lista.getAttribute("data-rank")); } catch (e) { return; }
+    var porId = {};
+    $$(":scope > li", lista).forEach(function (li) { porId[li.getAttribute("data-id")] = li; });
+    function ordenar(c) {
+      var filas = datos[c] || [], vistos = {};
+      filas.forEach(function (f, i) {
+        var li = porId[f[0]];
+        if (!li) return;
+        vistos[f[0]] = true;
+        li.removeAttribute("data-fuera");
+        li.querySelector(".pr-pos").textContent = i + 1;
+        li.querySelector(".pr-precio b").textContent = f[1];
+        var dif = li.querySelector(".pr-precio small");
+        if (dif) { dif.textContent = f[2]; dif.className = f[3]; }
+        var barra = li.querySelector(".pr-relleno");
+        barra.style.width = f[4] + "%";
+        barra.className = "pr-relleno pr-" + f[5];
+        lista.appendChild(li);
+      });
+      Object.keys(porId).forEach(function (id) { if (!vistos[id]) porId[id].setAttribute("data-fuera", ""); });
+    }
+    if (comb() !== "diesel") ordenar(comb());
+    alCambiarComb.push(ordenar);
+  });
+
   $$("[data-filtro-prov]").forEach(function (input) {
     var vacio = document.querySelector("[data-prov-vacio]");
     input.addEventListener("input", function () {
@@ -923,6 +1026,24 @@
   $$(".evolucion-plot[data-serie]").forEach(function (plot) {
     var serie;
     try { serie = JSON.parse(plot.getAttribute("data-serie")); } catch (e) { return; }
+    cursorGrafico(plot, serie);
+  });
+  // Gráficos con los datos aparte (datos/graficos.json): se piden la primera vez que se toca uno.
+  var seriesP = null;
+  $$(".evolucion-plot[data-serie-ref]").forEach(function (plot) {
+    function pedir(ev) {
+      ["pointerenter", "pointerdown", "focusin"].forEach(function (n) { plot.removeEventListener(n, pedir); });
+      if (!seriesP) seriesP = fetch(BASE + "/datos/graficos.json").then(function (r) { return r.json(); });
+      seriesP.then(function (todas) {
+        var s = todas[plot.getAttribute("data-serie-ref")];
+        if (!s) return;
+        cursorGrafico(plot, s);
+        if (ev && ev.clientX != null && ev.type !== "focusin") plot.dispatchEvent(new PointerEvent("pointermove", { clientX: ev.clientX, clientY: ev.clientY, pointerType: ev.pointerType }));
+      }).catch(function () { seriesP = null; });
+    }
+    ["pointerenter", "pointerdown", "focusin"].forEach(function (n) { plot.addEventListener(n, pedir); });
+  });
+  function cursorGrafico(plot, serie) {
     if (!serie.length) return;
     var linea = document.createElement("span"), punto = document.createElement("span"), tip = document.createElement("span");
     linea.className = "cursor-linea"; punto.className = "cursor-punto"; tip.className = "cursor-tip";
@@ -940,7 +1061,7 @@
     plot.addEventListener("pointermove", mover);
     plot.addEventListener("pointerdown", mover);
     plot.addEventListener("pointerleave", function (ev) { if (ev.pointerType === "mouse") [linea, punto, tip].forEach(function (x) { x.hidden = true; }); });
-  });
+  }
 
   // ---------- gráficos: 1 mes, 3 meses, 6 meses, 1 año ----------
   $$("[data-rangos]").forEach(function (bloque) {

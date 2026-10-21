@@ -42,27 +42,19 @@
         <span>{{ e.direccion }}</span>
         <span class="estacion-meta"><span class="ahora" data-ahora{% if e.semana %} data-h="{{ e.semana }}"{% endif %}></span>{% if e.abierta_24h %}Abierta 24 horas{% else %}{{ e.horario }}{% endif %}<span class="distancia" data-distancia></span></span>
       </div>
-      <div class="estacion-precio">
-        {% for c in UI %}
-        <span data-c="{{ c }}"{% if f.barata[c] %} class="es-barata"{% endif %}>
-          {% if f.precios[c] is not none %}{{ f.precios[c]|cifra }}<small>{% if f.barata[c] %}la más barata{% elif f.dif[c] is not none and n > 1 %}{{ f.dif[c]|cts }}{% endif %}</small>{% else %}<span class="sin-dato">No vende</span>{% endif %}
-        </span>
-        {% endfor %}
+      {# Un solo precio por gasolinera: el JS lo cambia al elegir combustible (data-diesel, data-g95… del li). #}
+      {% set ns = namespace(c0=none) %}{% for c in UI|reverse %}{% if f.precios[c] is not none %}{% set ns.c0 = c %}{% endif %}{% endfor %}
+      <div class="estacion-precio" data-precio-estacion>
+        {% if ns.c0 %}<span{% if f.barata[ns.c0] %} class="es-barata"{% endif %}>{{ f.precios[ns.c0]|cifra }}<small>{% if f.barata[ns.c0] %}la más barata{% elif f.dif[ns.c0] is not none and n > 1 %}{{ f.dif[ns.c0]|cts }}{% endif %}</small></span>{% else %}<span><span class="sin-dato">No vende</span></span>{% endif %}
       </div>
       {% if e.mapa %}<a class="estacion-ir" href="{{ e.mapa }}" target="_blank" rel="nofollow noopener" aria-label="Cómo llegar a {{ e.rotulo }}, {{ e.direccion }}">Ir</a>{% else %}<span></span>{% endif %}
     </li>
   {% endfor %}
   </ol>
-  <details class="todos">
+  {# La tabla se construye al abrirla (con data-tabla); con muchas gasolineras eran miles de elementos ocultos. #}
+  <details class="todos" data-tabla='{{ {"cab": presentes|map(attribute="nombre")|list, "filas": filas|map(attribute="e")|map("fila_tabla", presentes)|list}|tojson }}'>
     <summary>Ver todos los combustibles en una tabla</summary>
-    <div class="tabla-envoltura">
-      <table class="tabla">
-        <thead><tr><th scope="col">Gasolinera</th>{% for c in presentes %}<th scope="col" class="num">{{ c.nombre }}</th>{% endfor %}</tr></thead>
-        <tbody>
-        {% for f in filas %}<tr><td>{{ f.e.rotulo }}<span class="celda-sub">{{ f.e.direccion }}</span></td>{% for c in presentes %}<td class="num">{{ f.e.precios.get(c.clave)|precio }}</td>{% endfor %}</tr>{% endfor %}
-        </tbody>
-      </table>
-    </div>
+    <div class="tabla-envoltura" data-tabla-hueco></div>
   </details>
 </section>
 
@@ -72,6 +64,13 @@
 </section>
 {{ mc.evolucion(info, "Evolución del precio medio", clase="zona-evolucion") }}
 </div>
+
+{% if resumen_texto %}
+<section class="bloque resumen-pueblo" aria-labelledby="resumen-t">
+  <h2 id="resumen-t">{{ m.nombre }} hoy, en resumen</h2>
+  <p>{{ resumen_texto|join(" ") }}</p>
+</section>
+{% endif %}
 
 {{ mc.anuncio() }}
 

@@ -1208,3 +1208,16 @@ button.pop-ir { border: 0; cursor: pointer; font-family: var(--font); font-weigh
   mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent), linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
   mask-composite: intersect;
 }
+
+/* Página del widget (/widget/) */
+.widget-crear { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 440px); gap: var(--gutter); align-items: start; }
+.widget-crear .bloque > h2 + .campo, .widget-crear .bloque > .campo { width: 100%; }
+.widget-crear h2 + * { margin-top: 0; }
+.widget-crear .bloque h2:not(:first-child) { margin-top: 22px; }
+.w-sugerencias { list-style: none; margin: 6px 0 0; padding: 4px; border: 1px solid var(--borde); border-radius: var(--r-ctrl); background: var(--papel); }
+.w-sugerencias button { display: block; width: 100%; min-height: 40px; padding: 6px 10px; border: 0; border-radius: 8px; background: none; text-align: left; font: inherit; cursor: pointer; }
+.w-sugerencias button:hover, .w-sugerencias button:focus-visible { background: var(--surface); }
+.w-sugerencias small { color: var(--muted); }
+.w-codigo { width: 100%; margin-bottom: 10px; padding: 12px; border: 1px solid var(--borde); border-radius: var(--r-ctrl); background: var(--surface); font: 13px/1.5 ui-monospace, Consolas, monospace; resize: vertical; }
+.w-vista { display: block; border: 0; max-width: 420px; }
+@media (max-width: 860px) { .widget-crear { grid-template-columns: minmax(0, 1fr); } }

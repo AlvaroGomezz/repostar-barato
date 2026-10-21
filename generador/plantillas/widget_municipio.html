@@ -1,0 +1,30 @@
+<!doctype html>
+{# Widget para otras webs (se inserta con un iframe desde /widget/). Página mínima: sin anuncios, sin
+   estadísticas y sin JavaScript. No se indexa: el enlace que cuenta es el que va debajo del iframe. #}
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Precio de la gasolina hoy en {{ m.nombre }} · {{ sitio.nombre }}</title>
+<link rel="canonical" href="{{ abs_url(m.ruta) }}">
+<link rel="stylesheet" href="{{ url('/estatico/widget.css') }}?v={{ actualizado.strftime('%Y%m%d') }}">
+</head>
+<body>
+<div class="w">
+  <div class="w-cab"><img class="logo" src="{{ url('/estatico/marca/logo-sobre-amarillo.svg') }}" alt="{{ sitio.nombre }}" width="86" height="18"><time datetime="{{ actualizado.isoformat() }}">{{ actualizado|fecha_corta }}, {{ actualizado|hora }}</time></div>
+  <p class="w-tit">Gasolineras más baratas en {{ m.nombre }} hoy<small>{{ n }} gasolinera{{ "s" if n != 1 }} · precios oficiales del Ministerio</small></p>
+  {% if filas %}
+  <ul>
+    {% for f in filas %}
+    <li><span class="c">{{ f.nombre }}<small>{{ f.rotulo }}{% if f.n > 1 %} · media {{ f.media|precio }}{% endif %}</small></span><span class="p">{{ "%.3f"|format(f.precio)|replace(".", ",") }} <span>€/l</span></span></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="vacio">Hoy no hay precios publicados para {{ m.nombre }}.</p>
+  {% endif %}
+  {% if cerca %}<p class="w-cerca">Más barato cerca: {{ cerca.municipio }} (a {{ cerca.km }} km), diésel a {{ cerca.precio|precio }}.</p>{% endif %}
+  <a class="w-pie" href="{{ abs_url(m.ruta) }}" target="_blank" rel="noopener">Ver las gasolineras de {{ m.nombre }} en {{ sitio.nombre }} →</a>
+</div>
+</body>
+</html>

@@ -162,6 +162,7 @@
   "estadisticas": '<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
   "marcas": '<path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.5" cy="8.5" r="1.5"/>',
   "calculadora": '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/>',
+  "codigo": '<path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5.5l-3 13"/>',
   "noticias": '<path d="M4 5h13v14H6a2 2 0 0 1-2-2V5zm13 4h3v8a2 2 0 0 1-2 2M7 9h7M7 13h7M7 17h4"/>',
 } %}<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ i[n]|safe }}</svg>{% endmacro %}
 
@@ -184,4 +185,5 @@
 {{ menu_enlace(url('/calculadora/'), 'calculadora', 'Calculadora de gasolina', 'Lo que cuesta un viaje o un depósito') }}
 {{ menu_enlace(url('/ruta/'), 'ruta', 'Planificar dónde repostar', 'Las más baratas en el camino') }}
 {{ menu_enlace(url('/noticias/'), 'noticias', 'Noticias', 'El precio de cada día, explicado') }}
+{{ menu_enlace(url('/widget/'), 'codigo', 'Widget para tu web', 'Los precios de tu pueblo, gratis en tu web') }}
 {% endmacro %}

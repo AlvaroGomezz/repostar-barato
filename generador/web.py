@@ -213,6 +213,7 @@ class Web:
             self.provincia(p)
         for m in self.d.municipios:
             self.municipio(m)
+        self.widgets()
         self.marcas()
         self.noticias(noticias)
         self.legales()
@@ -763,6 +764,26 @@ class Web:
             ld_lista=self.ld_gasolineras(f"Gasolineras baratas en {m.nombre} ({m.provincia.nombre})", m.estaciones),
             presentes=[c for c in COMBUSTIBLES if any(c.clave in e.precios for e in m.estaciones)],
         )
+
+    def widgets(self):
+        """Widget para otras webs: una página mínima por municipio (/widget/<provincia>/<municipio>/, sin
+        indexar) y la página /widget/ donde se elige el municipio y se copia el código."""
+        self.escribir("/widget/", "widget.html", prioridad="0.5")
+        for m in self.d.municipios:
+            filas = []
+            for c in ("diesel", "g95"):
+                r = resumen(m.estaciones, c)
+                if r.mas_barata:
+                    filas.append({"nombre": POR_CLAVE[c].nombre, "precio": r.minimo, "rotulo": r.mas_barata.rotulo,
+                                  "media": r.media, "n": r.n})
+            cerca = None
+            minimo = filas[0]["precio"] if filas and filas[0]["nombre"] == POR_CLAVE["diesel"].nombre else None
+            for e, d in m.cercanas:
+                v = e.precios.get("diesel")
+                if v is not None and (minimo is None or v < minimo - 0.005) and (cerca is None or v < cerca["precio"]):
+                    cerca = {"municipio": e.municipio.nombre, "km": numero(d, 0), "precio": v}
+            self.escribir(m.ruta.replace("/gasolineras/", "/widget/", 1), "widget_municipio.html", indexar=False,
+                          m=m, n=len(m.estaciones), filas=filas, cerca=cerca)
 
     def marcas(self):
         lista = []

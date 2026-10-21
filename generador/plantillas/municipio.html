@@ -69,6 +69,7 @@
 <section class="bloque resumen-pueblo" aria-labelledby="resumen-t">
   <h2 id="resumen-t">{{ m.nombre }} hoy, en resumen</h2>
   <p>{{ resumen_texto|join(" ") }}</p>
+  <p class="nota">¿Tienes una web? <a href="{{ url('/widget/') }}?m={{ m.ruta|replace('/gasolineras/', '')|trim('/') }}">Pon los precios de {{ m.nombre }} en ella, gratis</a>.</p>
 </section>
 {% endif %}
 

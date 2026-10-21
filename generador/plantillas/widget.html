@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% import "macros.html" as mc with context %}
+{% block titulo %}Widget gratis: el precio de la gasolina de tu pueblo en tu web{% endblock %}
+{% block descripcion %}Pon en la web de tu ayuntamiento, periódico o blog las gasolineras más baratas de tu municipio, con los precios oficiales de hoy. Gratis, sin publicidad y se actualiza solo.{% endblock %}
+{% block contenido %}
+{{ mc.migas([("Widget para tu web", none)]) }}
+<div class="titulo">
+  <h1>El precio de la gasolina de tu pueblo, en tu web</h1>
+  <p class="subtitulo">Gratis, sin publicidad dentro y se actualiza solo cada 3 horas con los precios oficiales.</p>
+</div>
+
+<div class="widget-crear">
+  <section class="bloque" aria-labelledby="w-paso1">
+    <h2 id="w-paso1">1. Elige tu municipio</h2>
+    <label class="oculto" for="w-buscar">Municipio</label>
+    <input id="w-buscar" class="campo" type="search" placeholder="Escribe tu municipio, p. ej. Alcobendas…" autocomplete="off" spellcheck="false" data-w-buscar>
+    <ul class="w-sugerencias" data-w-sugerencias hidden></ul>
+    <p class="nota">Elegido: <b data-w-nombre>Madrid</b></p>
+
+    <h2 id="w-paso2">2. Copia este código y pégalo en tu web</h2>
+    <label class="oculto" for="w-codigo">Código para insertar</label>
+    <textarea id="w-codigo" class="w-codigo" rows="6" readonly data-w-codigo></textarea>
+    <button type="button" class="boton" data-w-copiar>Copiar el código</button>
+    <p class="nota">Funciona en WordPress (bloque «HTML personalizado»), Wix («Insertar código»), Blogger y cualquier web que acepte HTML. Puedes cambiar el ancho y el alto en el código.</p>
+  </section>
+
+  <section class="bloque" aria-labelledby="w-vista">
+    <h2 id="w-vista">Así se verá</h2>
+    <iframe class="w-vista" data-w-vista src="{{ url('/widget/madrid/madrid/') }}" title="Vista previa del widget" width="100%" height="330" loading="lazy"></iframe>
+  </section>
+</div>
+
+<section class="bloque articulo" aria-labelledby="w-quien">
+  <h2 id="w-quien">¿Para quién es?</h2>
+  <ul>
+    <li><b>Ayuntamientos:</b> un servicio útil para los vecinos en la web municipal, sin mantenerlo.</li>
+    <li><b>Periódicos y radios locales:</b> el precio del día junto a la información de tráfico o del tiempo.</li>
+    <li><b>Blogs, asociaciones y clubes de coches, autocaravanas o transportistas.</b></li>
+  </ul>
+  <h2>Preguntas frecuentes</h2>
+  <p><b>¿Cuesta algo?</b> No. Es gratis y no lleva anuncios dentro.</p>
+  <p><b>¿De dónde salen los precios?</b> De los datos oficiales que las gasolineras comunican al Ministerio para la Transición Ecológica. Los actualizamos cada 3 horas.</p>
+  <p><b>¿Puedo quitar el enlace de debajo?</b> Te pedimos que lo mantengas: es la forma de citar la fuente de los datos y de que el widget siga siendo gratis.</p>
+  <p><b>¿Tienes una duda o quieres otro formato?</b> Escríbenos a <a href="mailto:{{ sitio.email }}">{{ sitio.email }}</a>.</p>
+</section>
+
+<script>
+(function () {
+  var BASE = window.BASE || "", WEB = {{ sitio.url|tojson }};
+  var input = document.querySelector("[data-w-buscar]"), lista = document.querySelector("[data-w-sugerencias]");
+  var vista = document.querySelector("[data-w-vista]"), codigo = document.querySelector("[data-w-codigo]");
+  var nombre = document.querySelector("[data-w-nombre]"), municipios = null;
+  function sinAcentos(t) { return (t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+  function esc(t) { var d = document.createElement("div"); d.textContent = t; return d.innerHTML; }
+  function elegir(nom, ruta) {
+    var tramo = ruta.replace(/^.*?\/gasolineras\//, "");
+    nombre.textContent = nom;
+    vista.src = BASE + "/widget/" + tramo;
+    codigo.value = '<iframe src="' + WEB + "/widget/" + tramo + '" title="Precio de la gasolina hoy en ' + nom.replace(/"/g, "") +
+      '" width="100%" height="330" style="border:0;max-width:420px" loading="lazy"></iframe>\n' +
+      '<p style="margin:4px 0 0;font:13px sans-serif">Datos: <a href="' + WEB + "/gasolineras/" + tramo + '">GASVIA</a></p>';
+    try { history.replaceState(null, "", "?m=" + tramo.replace(/\/$/, "")); } catch (e) {}
+  }
+  function cargar() {
+    if (!municipios) municipios = fetch(BASE + "/buscar.json").then(function (r) { return r.json(); });
+    return municipios;
+  }
+  input.addEventListener("input", function () {
+    var q = sinAcentos(input.value.trim());
+    if (q.length < 2) { lista.hidden = true; return; }
+    cargar().then(function (todos) {
+      var r = todos.filter(function (m) { return sinAcentos(m[0]).indexOf(q) === 0; })
+        .concat(todos.filter(function (m) { var s = sinAcentos(m[0]); return s.indexOf(q) > 0; }))
+        .slice(0, 8);
+      lista.innerHTML = r.map(function (m) {
+        return '<li><button type="button" data-n="' + esc(m[0]) + '" data-r="' + esc(m[2]) + '">' + esc(m[0]) + " <small>" + esc(m[1]) + "</small></button></li>";
+      }).join("");
+      lista.hidden = !r.length;
+    });
+  });
+  lista.addEventListener("click", function (ev) {
+    var b = ev.target.closest("button");
+    if (!b) return;
+    elegir(b.getAttribute("data-n"), b.getAttribute("data-r"));
+    lista.hidden = true;
+    input.value = "";
+  });
+  document.querySelector("[data-w-copiar]").addEventListener("click", function (ev) {
+    var boton = ev.currentTarget;
+    var hecho = function () { boton.textContent = "¡Copiado!"; setTimeout(function () { boton.textContent = "Copiar el código"; }, 2000); };
+    if (navigator.clipboard) navigator.clipboard.writeText(codigo.value).then(hecho);
+    else { codigo.select(); document.execCommand("copy"); hecho(); }
+  });
+  // Municipio de partida: el de ?m=provincia/municipio (lo ponen los enlaces de cada pueblo) o Madrid.
+  var m = (new URLSearchParams(location.search).get("m") || "").replace(/[^a-z0-9\-\/]/g, "");
+  if (m) {
+    cargar().then(function (todos) {
+      var x = todos.filter(function (t) { return t[2].indexOf("/gasolineras/" + m + "/") !== -1; })[0];
+      if (x) elegir(x[0], x[2]); else elegir("Madrid", "/gasolineras/madrid/madrid/");
+    });
+  } else {
+    elegir("Madrid", "/gasolineras/madrid/madrid/");
+  }
+})();
+</script>
+{% endblock %}

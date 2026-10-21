@@ -123,6 +123,11 @@ def test_web_completa(bruto, tmp_path):
     portada = (salida / "index.html").read_text(encoding="utf-8")
     assert "data-mapa-estatico" in portada and "data-rank=" in portada and "data-serie=" not in portada
     assert portada.count('class="prov-rank"') == 1
+    # Widget: página para crearlo (en el sitemap) y una mínima por municipio (fuera del sitemap).
+    widget = (salida / "widget/madrid/madrid/index.html").read_text(encoding="utf-8")
+    assert 'content="noindex"' in widget and "1,450" in widget and "adsbygoogle" not in widget
+    mapa_web = (salida / "sitemap.xml").read_text(encoding="utf-8")
+    assert "https://ejemplo.es/sub/widget/" in mapa_web and "/widget/madrid/" not in mapa_web
     assert "adsbygoogle" in madrid
     # El bloque de anuncios fijo sale en municipio, provincia y portada.
     for pagina in ("gasolineras/madrid/madrid", "gasolineras/madrid", ""):

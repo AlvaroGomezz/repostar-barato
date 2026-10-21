@@ -42,9 +42,6 @@
 {% if sitio.goatcounter %}
 <script data-goatcounter="https://{{ sitio.goatcounter }}.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 {% endif %}
-{% if sitio.adsense %}
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ sitio.adsense }}" crossorigin="anonymous"></script>
-{% endif %}
 {% block cabeza %}{% endblock %}
 </head>
 <body class="{% block clase_body %}interior{% endblock %}">
@@ -161,5 +158,9 @@
 </nav>
 <script>window.BASE = {{ sitio.base|tojson }}; window.HORA = {{ (actualizado|hora)|tojson }};</script>
 <script src="{{ url('/estatico/app.js') }}?v={{ actualizado.strftime('%Y%m%d%H%M') }}" defer></script>
+{# AdSense al final: en la cabecera se ejecutaba antes del primer pintado y en las páginas largas lo retrasaba ~2 s. #}
+{% if sitio.adsense %}
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ sitio.adsense }}" crossorigin="anonymous"></script>
+{% endif %}
 </body>
 </html>

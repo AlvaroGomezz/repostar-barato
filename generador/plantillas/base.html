@@ -31,9 +31,8 @@
   if (/^(30|40|50|60|70)$/.test(l || "")) d.setAttribute("data-litros", l);
 })();
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+{# La fuente se sirve desde la propia web (antes Google Fonts bloqueaba el primer pintado casi 1 s). #}
+<link rel="preload" href="{{ url('/estatico/fuentes/albert-sans-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
 <link rel="icon" href="{{ url('/estatico/icono.svg') }}" type="image/svg+xml">
 <link rel="icon" href="{{ url('/estatico/marca/favicon-48.png') }}" type="image/png" sizes="48x48">
 <link rel="apple-touch-icon" href="{{ url('/estatico/marca/apple-touch-icon.png') }}">

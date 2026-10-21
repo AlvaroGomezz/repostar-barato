@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% import "macros.html" as mc with context %}
-{% block titulo %}Gasolineras más baratas de {{ p.nombre }} hoy · Diésel {{ info.diesel.r.minimo|precio }}{% endblock %}
+{% block titulo %}Gasolineras baratas en {{ p.nombre }} hoy · Diésel {{ info.diesel.r.minimo|precio }}{% endblock %}
 {% block descripcion %}Precios de hoy en las {{ p.estaciones|length }} gasolineras de {{ p.nombre }}: diésel medio {{ info.diesel.r.media|precio }} y gasolina 95 {{ info.g95.r.media|precio }}. La más barata y el precio de cada municipio.{% endblock %}
 {% block contenido %}
+<script type="application/ld+json">{{ ld_lista|tojson }}</script>
 {{ mc.migas([(p.nombre, none)]) }}
 <div class="titulo">
-  <h1>Gasolineras en {{ p.nombre }}</h1>
+  <h1>Gasolineras baratas en {{ p.nombre }}</h1>
   <p class="subtitulo">{{ p.estaciones|length|numero(0) }} gasolineras en {{ p.municipios|length }} municipios · {{ mc.frescura() }}</p>
 </div>
 

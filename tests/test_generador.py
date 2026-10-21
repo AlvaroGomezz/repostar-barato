@@ -115,6 +115,8 @@ def test_web_completa(bruto, tmp_path):
     assert "<title>Gasolineras baratas en Madrid hoy · Diésel 1,450 €</title>" in madrid
     assert "1,450 €" in madrid and 'href="/sub/gasolineras/madrid/"' in madrid
     assert "FAQPage" in madrid and "BreadcrumbList" in madrid
+    assert '"@type": "ItemList"' in madrid and '"@type": "GasStation"' in madrid
+    assert (salida / "favicon.ico").exists() and "fonts.googleapis" not in madrid
     assert "adsbygoogle" in madrid
     # El bloque de anuncios fijo sale en municipio, provincia y portada.
     for pagina in ("gasolineras/madrid/madrid", "gasolineras/madrid", ""):

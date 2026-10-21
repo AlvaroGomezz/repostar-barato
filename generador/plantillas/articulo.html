@@ -81,9 +81,9 @@
     <h2>Más para ahorrar</h2>
     <ul class="mas-lista">
       {% for o in otras %}
-      <li><a href="{{ url(o.ruta) }}"><img src="{{ url(o.imagen) }}" alt="" width="1200" height="675" loading="lazy" decoding="async"><span>{{ o.titular }}</span></a></li>
+      <li><a href="{{ url(o.ruta) }}"><img src="{{ url(o.imagen) }}" alt="{{ o.titular }}" width="1200" height="675" loading="lazy" decoding="async"><span>{{ o.titular }}</span></a></li>
       {% endfor %}
-      <li><a href="{{ url('/calculadora/') }}"><img src="{{ url('/imagenes/calculadora.jpg') }}" alt="" width="1200" height="675" loading="lazy" decoding="async"><span>Calculadora: cuánto cuesta tu viaje</span></a></li>
+      <li><a href="{{ url('/calculadora/') }}"><img src="{{ url('/imagenes/calculadora.jpg') }}" alt="Calculadora de gasolina de GASVIA" width="1200" height="675" loading="lazy" decoding="async"><span>Calculadora: cuánto cuesta tu viaje</span></a></li>
     </ul>
   </section>
 </aside>

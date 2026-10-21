@@ -17,7 +17,7 @@
         <span class="di-titulo">{{ a.titulo }}</span>
         <span class="di-nota">{{ a.descripcion }}</span>
       </span>
-      <img src="{{ url(a.imagen) }}" alt="" width="1200" height="675" loading="{{ 'eager' if loop.first else 'lazy' }}" decoding="async">
+      <img src="{{ url(a.imagen) }}" alt="{{ a.titulo }}" width="1200" height="675" loading="{{ 'eager' if loop.first else 'lazy' }}" decoding="async">
     </a></li>
   {% endfor %}
   </ul>

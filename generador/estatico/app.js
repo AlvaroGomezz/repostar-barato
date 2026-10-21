@@ -422,6 +422,17 @@
     }
     return mapLibreP;
   }
+  // Llama a fn cuando la página ha terminado de cargar y el elemento está en pantalla.
+  function cuandoSeVea(el, fn) {
+    function mirar() {
+      if (!("IntersectionObserver" in window)) { fn(); return; }
+      var io = new IntersectionObserver(function (es) {
+        if (es[0].isIntersecting) { io.disconnect(); fn(); }
+      }, { threshold: 0.15 });
+      io.observe(el);
+    }
+    if (document.readyState === "complete") mirar(); else window.addEventListener("load", mirar, { once: true });
+  }
   // En el móvil, la tarjeta de una gasolinera sale en un panel abajo, no dentro del mapa.
   var enMovil = window.matchMedia ? matchMedia("(max-width: 720px)") : { matches: false };
   var hoja = null;
@@ -454,6 +465,10 @@
     var mapa = null, listo = false, pendiente = null, marcadores = [], yoMarcador = null, leyenda = null;
     div.classList.add("mapa");
     div.innerHTML = '<p class="mapa-cargando">Cargando el mapa…</p>';
+    // perezoso: el mapa (MapLibre y unos 3 MB de mapa) se descarga cuando la página ya ha cargado y
+    // el mapa está a la vista. Así no frena la primera carga, sobre todo en el móvil.
+    if (opciones.perezoso) cuandoSeVea(div, arrancar); else arrancar();
+    function arrancar() {
     cargarMapLibre().then(function (ml) {
       div.innerHTML = "";
       mapa = new ml.Map({
@@ -491,6 +506,7 @@
         if (pendiente) pintar.apply(null, pendiente);
       });
     }).catch(function () { div.innerHTML = '<p class="mapa-cargando">No se pudo cargar el mapa. Comprueba la conexión.</p>'; });
+    }
 
     function categoria(i, n, v, minimo) {
       if (v <= minimo + 0.0005) return "top";
@@ -609,7 +625,7 @@
     var ciudadesMapa = [];
     try { ciudadesMapa = JSON.parse(divMapa.getAttribute("data-ciudades") || "[]"); } catch (e) {}
     function mapaZona() {
-      if (!controlMapa && divMapa) controlMapa = crearMapa(divMapa, { onUbicacion: function () { contar("ubicacion"); porUbicacion(false); } });
+      if (!controlMapa && divMapa) controlMapa = crearMapa(divMapa, { perezoso: true, onUbicacion: function () { contar("ubicacion"); porUbicacion(false); } });
       return controlMapa;
     }
     // Sin zona elegida: cada gran ciudad con su gasolinera más barata de hoy.

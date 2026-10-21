@@ -1,9 +1,14 @@
 {% extends "base.html" %}
 {% import "macros.html" as mc with context %}
-{% block titulo %}Gasolineras baratas cerca de ti · Precio de la gasolina y el diésel hoy{% endblock %}
+{% block titulo %}Gasolineras baratas cerca de ti y precio de la gasolina hoy{% endblock %}
 {% block descripcion %}Las gasolineras más baratas de tu zona, con distancia y cómo llegar. Precio medio hoy: diésel {{ cifras[0].media|precio }}/l. Precios oficiales de las {{ n_estaciones|numero(0) }} gasolineras de España.{% endblock %}
 {% block cabeza %}
-<script type="application/ld+json">{{ {"@context": "https://schema.org", "@type": "WebSite", "name": sitio.nombre, "url": abs_url("/")}|tojson }}</script>
+<script type="application/ld+json">{{ {"@context": "https://schema.org", "@graph": [
+  {"@type": "WebSite", "@id": abs_url("/") ~ "#web", "name": sitio.nombre, "url": abs_url("/"), "inLanguage": "es-ES",
+   "publisher": {"@id": abs_url("/") ~ "#organizacion"}},
+  {"@type": "Organization", "@id": abs_url("/") ~ "#organizacion", "name": sitio.nombre, "url": abs_url("/"),
+   "logo": abs_url("/estatico/marca/icono-512.png")}
+]}|tojson }}</script>
 {% endblock %}
 {% block clase_body %}portada{% endblock %}
 {% block clase_main %}{% endblock %}
@@ -69,7 +74,7 @@
 
 {# ---------- Herramientas: accesos directos ---------- #}
 <section class="herramientas-inicio seccion" aria-labelledby="herr-t">
-  <h2 id="herr-t" class="titular-seccion">¿Qué necesitas?</h2>
+  <h2 id="herr-t" class="titular-seccion">Herramientas para ahorrar en gasolina</h2>
   <ul class="herr-rejilla">
     <li><a class="herr" href="{{ url('/ruta/') }}"><span class="herr-icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28"><circle cx="6" cy="18" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span><b>Gasolineras en tu ruta</b><span>Dónde parar a repostar más barato en un viaje.</span></a></li>
     <li><a class="herr" href="{{ url('/calculadora/') }}"><span class="herr-icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28"><rect x="5" y="3" width="14" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><b>Calculadora de gasolina</b><span>Cuánto te cuesta un viaje o llenar el depósito.</span></a></li>
@@ -132,7 +137,7 @@
 {# ---------- 2. Noticias y herramientas, como la portada de un periódico ---------- #}
 {% set principal = noticias[0] if noticias else none %}
 <section class="diario seccion" aria-labelledby="diario-t">
-  <h2 id="diario-t" class="titular-seccion">Lo último</h2>
+  <h2 id="diario-t" class="titular-seccion">Noticias del precio de la gasolina</h2>
   <div class="diario-rejilla">
     {% if principal %}
     <article class="diario-principal">
@@ -149,12 +154,12 @@
       {% for a in noticias[1:4] %}
       <li><a href="{{ url(a.ruta) }}" class="diario-item">
         <span class="di-texto"><span class="diario-tema">{{ a.tema }}</span><span class="di-titulo">{{ a.titulo }}</span><time datetime="{{ a.fecha.isoformat() }}">{{ a.fecha|fecha_media }}</time></span>
-        <img src="{{ url(a.imagen) }}" alt="" width="1200" height="675" loading="lazy" decoding="async">
+        <img src="{{ url(a.imagen) }}" alt="{{ a.titulo }}" width="1200" height="675" loading="lazy" decoding="async">
       </a></li>
       {% endfor %}
       <li><a href="{{ url('/calculadora/') }}" class="diario-item">
         <span class="di-texto"><span class="diario-tema">Herramienta</span><span class="di-titulo">Calculadora de gasolina: cuánto te cuesta un viaje en coche</span><span class="di-nota">Con el precio de hoy. Pon los kilómetros y lo que gasta tu coche.</span></span>
-        <img src="{{ url('/imagenes/calculadora.jpg') }}" alt="" width="1200" height="675" loading="lazy" decoding="async">
+        <img src="{{ url('/imagenes/calculadora.jpg') }}" alt="Calculadora de gasolina de GASVIA" width="1200" height="675" loading="lazy" decoding="async">
       </a></li>
       <li><a href="#buscar" class="diario-item">
         <span class="di-texto"><span class="diario-tema">Herramienta</span><span class="di-titulo">Gasolineras más baratas cerca de ti</span><span class="di-nota">Con tu ubicación: distancia, precio y cómo llegar.</span></span>
@@ -170,7 +175,7 @@
 
 {# ---------- 4. Para pagar menos: datos de hoy que ayudan a elegir ---------- #}
 <section class="consejos seccion" aria-labelledby="consejos-t">
-  <h2 id="consejos-t" class="titular-seccion">Para pagar menos</h2>
+  <h2 id="consejos-t" class="titular-seccion">Consejos para pagar menos gasolina</h2>
   <div class="consejos-rejilla">
     <article class="consejo consejo-ahorro" data-reveal>
       <p class="consejo-cifra">{{ hallazgo.euros|precio(2) }}</p>
@@ -212,7 +217,7 @@
 <section class="provincias seccion" id="provincias" aria-labelledby="prov-t">
   <div class="prov-cab">
     <div>
-      <h2 id="prov-t" class="titular-seccion">¿Dónde está más barato?</h2>
+      <h2 id="prov-t" class="titular-seccion">¿En qué provincia está más barata la gasolina?</h2>
       <p class="prov-intro">Las 52 provincias, de la más barata a la más cara, con el precio medio de hoy y la diferencia con la media de España.</p>
     </div>
     <label class="prov-filtro"><span class="oculto">Busca tu provincia</span>

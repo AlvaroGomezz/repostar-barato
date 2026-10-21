@@ -84,6 +84,35 @@ class Web:
                                      "item": self.abs_url(r)} for i, (n, r) in enumerate(lista)]}
 
     @staticmethod
+    def ld_gasolineras(nombre: str, estaciones: list[Estacion], n: int = 20) -> dict:
+        """ItemList de gasolineras (GasStation), de la más barata a la más cara en diésel, para que Google
+        entienda que la página es una lista de gasolineras con su dirección, ubicación y precios."""
+        def clave(e):
+            return (e.precios.get("diesel", e.precios.get("g95", 9)), e.id)
+
+        def gasolinera(e: Estacion) -> dict:
+            g = {"@type": "GasStation", "name": e.rotulo,
+                 "address": {"@type": "PostalAddress", "streetAddress": e.direccion, "postalCode": e.cp,
+                             "addressLocality": e.municipio.nombre if e.municipio else "",
+                             "addressRegion": e.municipio.provincia.nombre if e.municipio else "",
+                             "addressCountry": "ES"}}
+            if e.lat is not None:
+                g["geo"] = {"@type": "GeoCoordinates", "latitude": e.lat, "longitude": e.lon}
+            ofertas = [{"@type": "Offer", "name": POR_CLAVE[c].nombre, "priceCurrency": "EUR",
+                        "priceSpecification": {"@type": "UnitPriceSpecification", "price": e.precios[c],
+                                               "priceCurrency": "EUR", "unitCode": "LTR"}}
+                       for c in ("diesel", "g95") if c in e.precios]
+            if ofertas:
+                g["makesOffer"] = ofertas
+            return g
+
+        lista = sorted(estaciones, key=clave)[:n]
+        return {"@context": "https://schema.org", "@type": "ItemList", "name": nombre,
+                "numberOfItems": len(lista),
+                "itemListElement": [{"@type": "ListItem", "position": i + 1, "item": gasolinera(e)}
+                                    for i, e in enumerate(lista)]}
+
+    @staticmethod
     def ld_faq(preguntas) -> dict:
         return {"@context": "https://schema.org", "@type": "FAQPage",
                 "mainEntity": [{"@type": "Question", "name": p,
@@ -587,6 +616,7 @@ class Web:
         self.escribir(p.ruta, "provincia.html", prioridad="0.8", p=p, info=info, nac=self.nac,
                       og_imagen=f"/imagenes/provincias/{p.slug}.jpg",
                       municipios=municipios, faq=faq,
+                      ld_lista=self.ld_gasolineras(f"Gasolineras más baratas de {p.nombre}", p.estaciones),
                       otras=[x for x in self.d.provincias if x.id != p.id])
 
     def municipio(self, m: Municipio):
@@ -644,6 +674,7 @@ class Web:
                          + [e.precios.get(c) for c in UI] + [1 if e.abierta_24h else 0, e.semana]
                          for e in m.estaciones if e.lat is not None],
             vecinos=vecinos, faq=faq, n24=n24,
+            ld_lista=self.ld_gasolineras(f"Gasolineras baratas en {m.nombre} ({m.provincia.nombre})", m.estaciones),
             presentes=[c for c in COMBUSTIBLES if any(c.clave in e.precios for e in m.estaciones)],
         )
 
@@ -747,6 +778,8 @@ class Web:
             pub = self.sitio.adsense.replace("ca-", "")
             self.fichero("ads.txt", f"google.com, {pub}, DIRECT, f08c47fec0942fa0\n")
         self.fichero(".nojekyll", "")
+        # Algunos buscadores y lectores piden /favicon.ico aunque la página indique otro icono.
+        shutil.copyfile(ESTATICO / "marca" / "favicon.ico", self.salida / "favicon.ico")
         if self.sitio.indexnow:  # Bing comprueba esta clave antes de aceptar los avisos de IndexNow
             self.fichero(f"{self.sitio.indexnow}.txt", self.sitio.indexnow)
         # La web se puede añadir a la pantalla de inicio del móvil como una app.

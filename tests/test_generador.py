@@ -130,6 +130,17 @@ def test_web_completa(bruto, tmp_path):
     assert (salida / "noticias/2026-10-20-precio-gasolina-diesel-hoy/index.html").exists()
     buscar = json.loads((salida / "buscar.json").read_text(encoding="utf-8"))
     assert ["Madrid", "Madrid", "/sub/gasolineras/madrid/madrid/", 22] in [x[:4] for x in buscar]
+    # Vídeo del día: la página privada no va al sitemap y cada escena se dibuja sin errores.
+    assert "/video/" not in sitemap and 'content="noindex' in (salida / "video/index.html").read_text(encoding="utf-8")
+    from generador import video
+    datos_video = json.loads((tmp_path / "aviso" / "video.json").read_text(encoding="utf-8"))
+    assert datos_video["ciudades"] and datos_video["medias"]
+    lista = video.escenas(datos_video)
+    inicio = 0.0
+    for _, dur in lista:
+        for t in (inicio + 0.05, inicio + dur / 2, inicio + dur - 0.05):
+            assert video.fotograma(datos_video, t, lista).size == (video.ANCHO, video.ALTO)
+        inicio += dur
 
 
 def test_interfaz_por_combustible(bruto, tmp_path):

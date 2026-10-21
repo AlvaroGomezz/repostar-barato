@@ -3,3 +3,4 @@ requests==2.34.2
 tzdata
 pytest
 pillow==13.0.0
+imageio-ffmpeg==0.6.0

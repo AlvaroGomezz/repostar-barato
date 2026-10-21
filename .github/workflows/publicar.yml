@@ -45,6 +45,10 @@ jobs:
       - name: Descargar precios y generar la web
         run: python -m generador
 
+      # Vídeo vertical del día para Instagram y TikTok (gasvia.es/video/). Si falla, la web se publica igual.
+      - name: Crear el vídeo del día
+        run: python -m generador.video
+
       - uses: actions/cache/save@v4
         with:
           path: respaldo

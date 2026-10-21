@@ -187,6 +187,7 @@ class Web:
         self.datos_json()
         self.ficheros_tecnicos()
         self.aviso_telegram(noticias[0] if noticias else None)
+        self.datos_video()
 
     # ---------- imágenes para compartir y para Google ----------
 
@@ -316,6 +317,77 @@ class Web:
             filas.append({"p": p, "media": r.media, "dif7": (r.media - q[0]) if q else None, "barata": barata,
                           "especial": p.id in FISCALIDAD_ESPECIAL})
         return sorted(filas, key=lambda x: x["media"])
+
+    def datos_video(self):
+        """Prepara los datos del vídeo vertical del día (lo dibuja generador/video.py) y la página
+        privada /video/ desde la que se descarga para subirlo a Instagram o TikTok."""
+        from .texto import DIAS, MESES
+        hoy = self.d.actualizado
+        fecha = f"{DIAS[hoy.weekday()]} {hoy.day} de {MESES[hoy.month - 1]}"
+
+        medias = []
+        for c in ("diesel", "g95"):
+            m, var = self.nac[c].media, self.variacion(c)
+            if m is None:
+                continue
+            if var is None:
+                nota, sentido = "", 0
+            elif abs(var) < 0.0005:
+                nota, sentido = "Igual que ayer", 0
+            else:
+                nota, sentido = f"{centimos(var)} {'más' if var > 0 else 'menos'} que ayer", 1 if var > 0 else -1
+            medias.append({"nombre": POR_CLAVE[c].nombre, "valor": m, "nota": nota, "sentido": sentido})
+
+        # La ciudad más grande de cada provincia (sin Canarias, Ceuta ni Melilla, con otros impuestos).
+        ciudades, grandes = [], []
+        for m in sorted(self.d.municipios, key=lambda m: -len(m.estaciones)):
+            if m.provincia.id in FISCALIDAD_ESPECIAL or any(x.provincia.id == m.provincia.id for x in grandes):
+                continue
+            grandes.append(m)
+            e = (mas_baratas(m.estaciones, "diesel", 1) or [None])[0]
+            if e:
+                ciudades.append({"nombre": m.nombre, "precio": e.precios["diesel"], "rotulo": e.rotulo})
+            if len(ciudades) == 6:
+                break
+        ciudades.sort(key=lambda x: x["precio"])  # de más barata a más cara: la primera sale en verde
+
+        # Lo que se ahorra en un depósito eligiendo bien la gasolinera en la ciudad más grande.
+        ahorro = None
+        if grandes:
+            m = grandes[0]
+            barata = (mas_baratas(m.estaciones, "diesel", 1) or [None])[0]
+            r = resumen(m.estaciones, "diesel")
+            if barata and r.maximo and r.maximo > barata.precios["diesel"]:
+                ahorro = {"ciudad": m.nombre, "euros": round((r.maximo - barata.precios["diesel"]) * DEPOSITO_L, 2),
+                          "litros": DEPOSITO_L}
+
+        t = self.tendencias.get("diesel")
+        # Solo cuando el precio se mueve: "estable" no aporta nada en un vídeo.
+        tend = {"titulo": t["titulo"], "texto": t["texto"], "estado": t["estado"]} if t and t["estado"] in ("sube", "baja") else None
+
+        lineas = [f"⛽ Precio de la gasolina hoy, {fecha}", ""]
+        lineas += [f"{x['nombre']}: {precio(x['valor'])}/l" + (f" ({x['nota'].lower()})" if x["nota"] else "") for x in medias]
+        if ciudades:
+            lineas += ["", "El diésel más barato hoy en…"]
+            lineas += [f"📍 {x['nombre']}: {precio(x['precio'])} ({x['rotulo']})" for x in ciudades]
+        if ahorro:
+            lineas += ["", f"💸 En {ahorro['ciudad']}, elegir bien la gasolinera ahorra hasta "
+                           f"{numero(ahorro['euros'])} € en un depósito de {ahorro['litros']} litros."]
+        if tend:
+            lineas += ["", f"📈 ¿Repostar hoy o esperar? {tend['titulo']}. {tend['texto']}"]
+        lineas += ["", "👉 Busca la gasolinera más barata de tu pueblo en gasvia.es (enlace en el perfil)", "",
+                   "#gasolina #diesel #preciogasolina #gasolinerasbaratas #ahorro #coches #españa"]
+        texto = "\n".join(lineas)
+
+        nombre = f"gasvia-{hoy:%Y-%m-%d}.mp4"
+        carpeta = self.salida.parent / "aviso"
+        carpeta.mkdir(exist_ok=True)
+        (carpeta / "video.json").write_text(json.dumps({
+            "fecha": hoy.date().isoformat(), "fecha_texto": fecha, "medias": medias, "ciudades": ciudades,
+            "ahorro": ahorro, "tendencia": tend, "texto": texto,
+            "destino": str((self.salida / "video" / "gasvia-hoy.mp4").resolve()),
+        }, ensure_ascii=False, indent=1), encoding="utf-8")
+        self.escribir("/video/", "video.html", indexar=False, texto=texto, nombre=nombre, fecha=fecha)
 
     def grandes_ciudades(self, n: int = 12) -> list:
         ciudades, vistas = [], set()

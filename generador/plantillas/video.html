@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{# Página privada (no sale en Google ni en el sitemap) para descargar el vídeo del día y copiar el texto. #}
+{% block titulo %}Vídeo del día · {{ sitio.nombre }}{% endblock %}
+{% block cabeza %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block contenido %}
+<div class="titulo">
+  <h1>Vídeo del día</h1>
+  <p class="subtitulo">{{ fecha|capitalize }} · para Instagram, TikTok o estados de WhatsApp</p>
+</div>
+
+<div class="video-dia">
+  <video class="video-dia-player" src="{{ url('/video/gasvia-hoy.mp4') }}" poster="{{ url('/video/portada.jpg') }}" controls playsinline preload="metadata"></video>
+
+  <div class="video-dia-panel">
+    <a class="boton-negro" href="{{ url('/video/gasvia-hoy.mp4') }}" download="{{ nombre }}">Descargar el vídeo</a>
+    <a class="boton-sec" href="{{ url('/video/portada.jpg') }}" download="{{ nombre|replace('.mp4', '.jpg') }}">Descargar la portada</a>
+
+    <h2>Texto para la publicación</h2>
+    <textarea class="video-dia-texto" id="texto-video" rows="14" readonly>{{ texto }}</textarea>
+    <button class="boton" type="button" data-copiar="texto-video">Copiar el texto</button>
+
+    <p class="nota">Se rehace solo cada 3 horas con los precios nuevos. Al subirlo, añade una canción desde la app: el vídeo no lleva sonido.</p>
+  </div>
+</div>
+
+<script>
+document.querySelector("[data-copiar]").addEventListener("click", function (ev) {
+  var campo = document.getElementById(ev.currentTarget.dataset.copiar), boton = ev.currentTarget;
+  var hecho = function () { boton.textContent = "¡Copiado!"; setTimeout(function () { boton.textContent = "Copiar el texto"; }, 2000); };
+  if (navigator.clipboard) { navigator.clipboard.writeText(campo.value).then(hecho); }
+  else { campo.select(); document.execCommand("copy"); hecho(); }
+});
+</script>
+{% endblock %}

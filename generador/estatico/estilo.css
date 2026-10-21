@@ -1157,3 +1157,11 @@ button.pop-ir { border: 0; cursor: pointer; font-family: var(--font); font-weigh
 .anuncio { margin: var(--gutter) auto; text-align: center; }
 .anuncio.seccion { padding-bottom: 0; }
 .anuncio:has(ins[data-ad-status="unfilled"]) { display: none; }
+
+/* Página privada del vídeo del día (/video/) */
+.video-dia { display: grid; gap: var(--gutter); grid-template-columns: minmax(0, 360px) minmax(0, 1fr); align-items: start; margin-bottom: var(--gutter); }
+.video-dia-player { width: 100%; aspect-ratio: 9 / 16; border-radius: var(--r); background: var(--ink); }
+.video-dia-panel { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.video-dia-panel h2 { margin-top: 12px; }
+.video-dia-texto { width: 100%; padding: 14px; border: 1px solid var(--borde); border-radius: var(--r-ctrl); background: var(--papel); color: inherit; font: inherit; font-size: var(--step-small); line-height: 1.5; resize: vertical; }
+@media (max-width: 720px) { .video-dia { grid-template-columns: minmax(0, 1fr); } }

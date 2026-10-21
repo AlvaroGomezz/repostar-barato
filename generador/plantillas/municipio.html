@@ -31,6 +31,7 @@
     {% endif %}
   </div>
   <p class="aviso" data-aviso-cercania hidden aria-live="polite"></p>
+  {% if puntos_mapa|length > 1 %}<div class="zona-mapa mapa-municipio" role="region" aria-label="Mapa de las gasolineras de {{ m.nombre }}" data-mapa-municipio data-puntos='{{ puntos_mapa|tojson }}'></div>{% endif %}
   <ol class="estaciones" data-lista>
   {% for f in filas %}{% set e = f.e %}
     <li class="estacion" data-tiene="{{ f.tiene }}"{% if e.abierta_24h %} data-24h{% endif %}{% if e.lat is not none %} data-lat="{{ e.lat }}" data-lon="{{ e.lon }}"{% endif %}{% for c in UI %}{% if f.precios[c] is not none %} data-{{ c }}="{{ f.precios[c] }}"{% endif %}{% endfor %}>

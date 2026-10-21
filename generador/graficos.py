@@ -20,6 +20,21 @@ def _paso(rango: float) -> float:
     return 1.0
 
 
+def _datos_cursor(puntos, x, y, fecha_txt) -> str:
+    import json
+    filas = []
+    for p in puntos:
+        f, v = p[0], p[1]
+        franja = f"{_fmt(p[2])} – {_fmt(p[3])}" if len(p) > 3 and p[2] is not None and p[3] is not None else ""
+        filas.append([round(x(f), 2), round(y(v), 2), fecha_txt(f), _fmt(v), franja])
+    return escape(json.dumps(filas, ensure_ascii=False, separators=(",", ":")))
+
+
+def _fecha_larga(f) -> str:
+    from .texto import fecha_media
+    return fecha_media(f)
+
+
 def evolucion(puntos: list[tuple[date, float]]) -> Markup:
     """Línea de un solo combustible (últimos días). Vacío si hay menos de 2 días."""
     puntos = sorted(puntos)
@@ -65,7 +80,8 @@ def evolucion(puntos: list[tuple[date, float]]) -> Markup:
     etiquetas.append(f'<span class="punto-hoy" style="left:{x(fu):.2f}%;top:{y(vu):.2f}%"></span>')
     resumen = (f"De {_fmt(valores[0])} € el {fecha_corta(puntos[0][0])} a {_fmt(vu)} € el "
                f"{fecha_corta(fu)}")
-    return Markup(f'<figure class="evolucion"><div class="evolucion-plot" role="img" aria-label="{escape(resumen)}">'
+    datos = _datos_cursor(puntos, x, y, _fecha_larga)
+    return Markup(f'<figure class="evolucion"><div class="evolucion-plot" role="img" aria-label="{escape(resumen)}" data-serie="{datos}">'
                   + "".join(svg) + "".join(etiquetas) + "</div></figure>")
 
 
@@ -150,5 +166,6 @@ def evolucion_banda(puntos: list[tuple], etiqueta: str = "") -> Markup:
     etiquetas.append(f'<span class="punto-hoy" style="left:{x(fu):.2f}%;top:{y(vu):.2f}%"></span>')
     resumen = (f"{etiqueta}: de {_fmt(puntos[0][1])} € el {fecha_corta(puntos[0][0])} a {_fmt(vu)} € el "
                f"{fecha_corta(fu)}")
-    return Markup(f'<figure class="evolucion"><div class="evolucion-plot" role="img" aria-label="{escape(resumen)}">'
+    datos = _datos_cursor(puntos, x, y, _fecha_larga)
+    return Markup(f'<figure class="evolucion"><div class="evolucion-plot" role="img" aria-label="{escape(resumen)}" data-serie="{datos}">'
                   + "".join(svg) + "".join(etiquetas) + "</div></figure>")

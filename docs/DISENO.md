@@ -57,8 +57,11 @@ En el móvil, la tarjeta de tu zona va justo después del combustible, y los lit
   y el navegador dice si cada gasolinera está abierta, a qué hora cierra o cuándo abre. Hay un filtro
   «Abiertas ahora» en la portada, en la ruta y en cada municipio. Si la más barata está cerrada, se avisa de
   la más barata abierta.
-- **Mapa de precios** (Leaflet con OpenStreetMap, solo se carga al pulsar «Mapa»): cada gasolinera con su
-  precio encima, las tres más baratas en verde.
+- **Mapa de precios** (MapLibre con los mapas gratuitos de OpenFreeMap, se carga al llegar a él): siempre
+  visible en tu zona, en la ruta y en cada municipio. Burbujas con el precio: más barata (verde lleno), barata,
+  media y cara; leyenda, «Mi ubicación» y zoom con dos dedos o Ctrl + rueda.
+- **Gráficos interactivos:** al pasar el ratón o el dedo se ve la fecha, el precio y la franja del 50 % central.
+- **Cabecera con menú:** enlaces principales y un botón «Menú» con todas las secciones agrupadas.
 - **Ruta** (`/ruta/`): origen y destino, con el camino por carretera del servicio público de OSRM. Muestra
   las gasolineras a 1, 3 o 5 km del camino, la más barata, dónde parar tramo a tramo (cada 100 km) y lo que
   cuesta la gasolina del viaje.

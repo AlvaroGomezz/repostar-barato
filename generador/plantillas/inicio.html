@@ -7,22 +7,11 @@
 {% endblock %}
 {% block clase_body %}portada{% endblock %}
 {% block clase_main %}{% endblock %}
-{% block barra %}{% endblock %}
 {% block contenido %}
 
 {# ---------- 1. Tu zona: buscar o ubicarte, y la lista de las más baratas ---------- #}
 <section class="cabeza" id="buscar" aria-labelledby="cabeza-t">
   <div class="cabeza-marco">
-    <header class="cabeza-barra">
-      <a class="cabeza-logo" href="{{ url('/') }}" translate="no">{{ mc.simbolo() }}</a>
-      <nav class="cabeza-nav" aria-label="Principal">
-        <a href="#provincias">Provincias</a>
-        <a href="{{ url('/calculadora/') }}">Calculadora</a>
-        <a href="{{ url('/marcas/') }}">Marcas</a>
-        <a href="{{ url('/noticias/') }}">Noticias</a>
-      </nav>
-    </header>
-    {{ mc.temas() }}
     <div class="cabeza-cuerpo">
       <div class="cabeza-izq">
         <h1 id="cabeza-t" class="lineas"><span class="linea"><span data-linea style="--i:0">Gasolineras baratas</span></span> <span class="linea"><span data-linea style="--i:1">cerca de ti</span></span></h1>

@@ -58,6 +58,7 @@ class Web:
             UI=UI, actualizado=datos.actualizado, anio=self.hoy.year, ld_migas=self.ld_migas,
             ld_faq=self.ld_faq, deposito=DEPOSITO_L, n_total=len(datos.estaciones),
             logo_amarillo=Markup(marca.logo_svg(**marca.SOBRE_AMARILLO, atributos=' class="logo" aria-hidden="true" focusable="false"')),
+            logo_claro=Markup(marca.logo_svg(**marca.SOBRE_CLARO, atributos=' class="logo" aria-hidden="true" focusable="false"')),
         )
         self.nac = {c.clave: resumen(datos.estaciones, c.clave) for c in COMBUSTIBLES}
         self.ayer = historico.get(self.hoy - timedelta(days=1))
@@ -538,6 +539,9 @@ class Web:
             m.ruta, "municipio.html", prioridad="0.7" if n > 1 else "0.5",
             m=m, info=info, res=res, res_p=res_p, filas=self.filas(m.estaciones), dist=dist,
             og_imagen=f"/imagenes/provincias/{m.provincia.slug}.jpg",
+            puntos_mapa=[[round(e.lat, 5), round(e.lon, 5), e.rotulo, e.direccion, m.nombre, ""]
+                         + [e.precios.get(c) for c in UI] + [1 if e.abierta_24h else 0, e.semana]
+                         for e in m.estaciones if e.lat is not None],
             vecinos=vecinos, faq=faq, n24=n24,
             presentes=[c for c in COMBUSTIBLES if any(c.clave in e.precios for e in m.estaciones)],
         )

@@ -56,24 +56,47 @@
   <div class="marco barra-fila">
     <a class="marca" href="{{ url('/') }}" translate="no">{{ mcb.simbolo() }}</a>
     <nav class="menu" aria-label="Principal">
-      <a href="{{ url('/') }}#provincias">Provincias</a>
-      <a href="{{ url('/calculadora/') }}"{% if ruta.startswith('/calculadora/') %} aria-current="page"{% endif %}>Calculadora</a>
-      <a href="{{ url('/marcas/') }}"{% if ruta.startswith('/marcas/') %} aria-current="page"{% endif %}>Marcas</a>
-      <a href="{{ url('/noticias/') }}"{% if ruta.startswith('/noticias/') %} aria-current="page"{% endif %}>Noticias</a>
+      <a href="{{ url('/') }}?cerca=1#buscar">Cerca de mí</a>
+      <a href="{{ url('/precio-gasolina/') }}"{% if ruta.startswith('/precio-gasolina/') %} aria-current="page"{% endif %}>Precio gasolina</a>
+      <a href="{{ url('/precio-diesel/') }}"{% if ruta.startswith('/precio-diesel/') %} aria-current="page"{% endif %}>Precio diésel</a>
+      <a href="{{ url('/ruta/') }}"{% if ruta.startswith('/ruta/') %} aria-current="page"{% endif %}>Ruta</a>
+      <a href="{{ url('/noticias/') }}"{% if ruta.startswith('/noticias/') %} aria-current="page"{% endif %}>Noticias{% if noticia_hoy %} <span class="menu-hoy">Hoy</span>{% endif %}</a>
     </nav>
-    <button class="barra-menu" type="button" data-abrir-menu aria-expanded="false" aria-controls="menu-movil">Menú</button>
     <button class="barra-buscar" type="button" data-abrir-busqueda aria-expanded="false" aria-controls="busqueda-barra" aria-label="Buscar municipio">
       <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       <span>Buscar municipio</span>
     </button>
+    <button class="barra-menu" type="button" data-abrir-menu aria-expanded="false" aria-controls="menu-panel">
+      <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>Menú</span>
+    </button>
   </div>
-  <nav class="menu-movil" id="menu-movil" aria-label="Principal" hidden>
-    <div class="marco">
-      <a href="{{ url('/') }}">Inicio</a>
-      <a href="{{ url('/') }}#provincias">Provincias</a>
-      <a href="{{ url('/calculadora/') }}">Calculadora de gasolina</a>
-      <a href="{{ url('/marcas/') }}">Marcas</a>
-      <a href="{{ url('/noticias/') }}">Noticias</a>
+  <nav class="menu-panel" id="menu-panel" aria-label="Todas las secciones" hidden>
+    <div class="marco menu-grupos">
+      <div class="menu-grupo">
+        <p>Buscar gasolineras</p>
+        <a href="{{ url('/') }}?cerca=1#buscar">Cerca de mí</a>
+        <a href="{{ url('/ruta/') }}">En tu ruta</a>
+        <a href="{{ url('/gasolineras-baratas/') }}">Gasolineras baratas</a>
+        <a href="{{ url('/') }}#provincias">Por provincia</a>
+      </div>
+      <div class="menu-grupo">
+        <p>Precios</p>
+        <a href="{{ url('/precio-gasolina/') }}">Precio de la gasolina</a>
+        <a href="{{ url('/precio-diesel/') }}">Precio del diésel</a>
+        <a href="{{ url('/estadisticas/') }}">Estadísticas</a>
+        <a href="{{ url('/marcas/') }}">Marcas más baratas</a>
+      </div>
+      <div class="menu-grupo">
+        <p>Herramientas</p>
+        <a href="{{ url('/calculadora/') }}">Calculadora de gasolina</a>
+        <a href="{{ url('/ruta/') }}">Planificar dónde repostar</a>
+      </div>
+      <div class="menu-grupo">
+        <p>Noticias</p>
+        {% if noticia_hoy %}<a href="{{ url(noticia_hoy.ruta) }}"><span class="menu-hoy">Hoy</span> {{ noticia_hoy.titular }}</a>{% endif %}
+        <a href="{{ url('/noticias/') }}">Todas las noticias</a>
+      </div>
     </div>
   </nav>
   <div class="busqueda-barra" id="busqueda-barra" hidden>
@@ -85,46 +108,46 @@
       </form>
     </div>
   </div>
-  {{ mcb.temas() }}
 </header>
 {% endblock %}
 <main id="contenido"{% block clase_main %} class="marco"{% endblock %}>
 {% block contenido %}{% endblock %}
 </main>
 <footer class="pie">
-  <div class="teselas">
-    <div class="tesela t-frase">
-      <p class="t-grande">Los precios oficiales de las {{ n_total|numero(0) }} gasolineras de España, actualizados a las {{ actualizado|hora }}.</p>
-      <p class="t-legal">Fuente: Geoportal de Hidrocarburos, Ministerio para la Transición Ecológica y el Reto Demográfico. Son orientativos: confirma el precio en el surtidor.</p>
+  <div class="pie-marco">
+    <div class="pie-marca">
+      <a href="{{ url('/') }}" class="pie-logo" translate="no" aria-label="{{ sitio.nombre }}, inicio">{{ logo_claro }}</a>
+      <p>Los precios oficiales de las {{ n_total|numero(0) }} gasolineras de España, actualizados a las {{ actualizado|hora }}.</p>
+      <p class="pie-fuente">Fuente: Ministerio para la Transición Ecológica y el Reto Demográfico. Precios orientativos: confírmalos en el surtidor.</p>
     </div>
-    <nav class="tesela t-nav" aria-label="Más páginas">
-      <a href="{{ url('/') }}#provincias">Provincias</a>
-      <a href="{{ url('/precio-gasolina/') }}">Precio de la gasolina</a>
-      <a href="{{ url('/precio-diesel/') }}">Precio del diésel</a>
-      <a href="{{ url('/gasolineras-baratas/') }}">Gasolineras baratas</a>
-      <a href="{{ url('/estadisticas/') }}">Estadísticas</a>
-      <a href="{{ url('/calculadora/') }}">Calculadora de gasolina</a>
-      <a href="{{ url('/marcas/') }}">Marcas</a>
-      <a href="{{ url('/noticias/') }}">Noticias</a>
-      {% if sitio.telegram %}<a href="https://t.me/{{ sitio.telegram.lstrip('@') }}" rel="noopener">Canal de Telegram</a>{% endif %}
-      <a href="{{ url('/sobre/') }}">Sobre esta web</a>
-      {% if sitio.email %}<a href="mailto:{{ sitio.email }}">Contacto</a>{% endif %}
-      <a href="{{ url('/aviso-legal/') }}">Aviso legal</a>
-      <a href="{{ url('/privacidad/') }}">Privacidad</a>
-      <a href="{{ url('/cookies/') }}">Cookies</a>
+    <nav class="pie-columnas" aria-label="Más páginas">
+      <div>
+        <p>Buscar</p>
+        <a href="{{ url('/') }}?cerca=1#buscar">Cerca de mí</a>
+        <a href="{{ url('/ruta/') }}">En tu ruta</a>
+        <a href="{{ url('/gasolineras-baratas/') }}">Gasolineras baratas</a>
+        <a href="{{ url('/') }}#provincias">Por provincia</a>
+      </div>
+      <div>
+        <p>Precios</p>
+        <a href="{{ url('/precio-gasolina/') }}">Precio de la gasolina</a>
+        <a href="{{ url('/precio-diesel/') }}">Precio del diésel</a>
+        <a href="{{ url('/estadisticas/') }}">Estadísticas</a>
+        <a href="{{ url('/marcas/') }}">Marcas</a>
+        <a href="{{ url('/calculadora/') }}">Calculadora</a>
+      </div>
+      <div>
+        <p>{{ sitio.nombre }}</p>
+        <a href="{{ url('/noticias/') }}">Noticias</a>
+        {% if sitio.telegram %}<a href="https://t.me/{{ sitio.telegram.lstrip('@') }}" rel="noopener">Telegram</a>{% endif %}
+        <a href="{{ url('/sobre/') }}">Sobre esta web</a>
+        {% if sitio.email %}<a href="mailto:{{ sitio.email }}">Contacto</a>{% endif %}
+      </div>
     </nav>
-    {% if noticia_hoy %}
-    <a class="tesela t-noticia" href="{{ url(noticia_hoy.ruta) }}">
-      <span class="t-pequena">Noticia de hoy</span>
-      <span class="t-media">{{ noticia_hoy.gancho }}</span>
-      <span class="t-pequena">{{ noticia_hoy.titular }}</span>
-    </a>
-    {% endif %}
-    <div class="tesela t-marca" translate="no" aria-hidden="true">{{ logo_amarillo }}</div>
-    <a class="tesela t-accion" href="{{ url('/') }}#buscar">
-      <span class="t-media">Busca tu gasolinera</span>
-      <svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true"><path d="M8 40 40 8M16 8h24v24" fill="none" stroke="currentColor" stroke-width="4"/></svg>
-    </a>
+  </div>
+  <div class="pie-base">
+    <span>© {{ anio }} {{ sitio.nombre }}</span>
+    <span class="pie-legal"><a href="{{ url('/aviso-legal/') }}">Aviso legal</a><a href="{{ url('/privacidad/') }}">Privacidad</a><a href="{{ url('/cookies/') }}">Cookies</a></span>
   </div>
 </footer>
 {# Accesos rápidos en el móvil, siempre a un toque. #}

@@ -8,7 +8,7 @@ url = "https://gasvia.es"
 
 # Google AdSense: el identificador de editor, tipo "ca-pub-1234567890123456".
 # Vacío = no se muestran anuncios.
-adsense = ""
+adsense = "ca-pub-5950812830362053"
 
 # Google Search Console: el código del "meta tag" de verificación (solo el content="...").
 search_console = ""

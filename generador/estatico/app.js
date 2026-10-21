@@ -691,10 +691,9 @@
       control.pintar(con, idx);
     }
     function iniciar() { if (control) return; control = crearMapa(div); pintarMun(); alCambiarComb.push(pintarMun); }
-    if ("IntersectionObserver" in window) {
-      var io = new IntersectionObserver(function (es) { if (es[0].isIntersecting) { io.disconnect(); iniciar(); } }, { rootMargin: "300px" });
-      io.observe(div);
-    } else iniciar();
+    // Como en la portada: cuando la página ha cargado, el mapa se ve y la persona ya ha hecho algo
+    // (o han pasado 3,5 s). En ciudades grandes son unos 3 MB entre MapLibre y el mapa.
+    cuandoSeVea(div, iniciar);
   });
 
   // ---------- portada: las gasolineras de tu zona ----------
